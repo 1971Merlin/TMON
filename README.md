@@ -45,7 +45,7 @@ The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their a
 
 ## Available Commands
 
-### help commands
+### Help commands
 
 EXIT  - Quites to SCMON
 HELP  - Help information
@@ -53,11 +53,11 @@ HELP  - Help information
 LIST - alias for HELP
 CLS - clears the screen
 
-### file transfer commands
+### File Transfer commands
 
 INTEL - tranfer an Intel HEX file from PC to SC/TEC
 
-## programming related commands
+### Programming Related commands
 
 Note - the xxxx represents a memory address input in hexadecimal. xxxx is optional; if specified it will override but not alter the 'current address' pointer. If not specified, the command acts based on the 'current address'.
 
@@ -67,10 +67,12 @@ DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and aSCII outp
 DIS xxxx - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time
 DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is caved to the CURRENT ADDDRESS. Enter Q to quit input mode.
 
-## testing & informational commands
+### Test & Informational commands
 
 BEEP  - makes a beep sound on the SC/TEC
 VER - Displays the TMON and SCMON versions
 HARDWARE - Returns the machine type - SC-1 or TEC-1F
 RAMCHK - Runs a test to determine the size and location of any RAM within the Z80's 64k address space. Will pick up multiple RAM blocks even if not contiguous.
+
+### Other Commands
 
