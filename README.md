@@ -21,7 +21,7 @@ TMON is an interactive tool, that works with a serial terminal e.g. PuTTY or Ter
 
 ### Starting up TMON
 
-Transfter TMON to the SC/TEC by yuour favourite means - I use Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal
+Transfer TMON to the SC/TEC by your favourite means - I use SMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
 Compiled Platform: TEC-1F
