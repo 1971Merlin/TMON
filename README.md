@@ -37,22 +37,30 @@ RAM Found between 2000h and 5FFFh - 4000h bytes
 
 The above text is the default display you should see from TMON upon startup. (Obviously if run on an SC-1 the messages change accordingly). TMON is now awaiting your input and you can type commands from the Available Commands list, given below.
 
-The command 'prompt' is the final line:
+The command 'prompt' is the final line displayed:
 
 ````
 2000 > 
 ````
 
+User commands are entered at this prompt.
+
 The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
 If you get lost, try entering ? to be reminded about the available commands.
 
-Invalid inputs are typically ignored, and results in the user simply being returned to the command prompt.
+The comand input editor is very simple. Invalid inputs are typically ignored, and results in the user simply being returned to the command prompt. The maximum command length accepted is 20 characters, however presently the longest valid command possible is 9 characters in length. When the user's input exceeds the maximum command length, the SC/TEC will emit a beep tone to indicate this condition has been reached. Backspace is supported, to correct typo's.
 
-The maximum command length is 40 characters, however presently the longest valid command possible is 9 characters in length.
+All data entered at all times is assumeed to be HEX - 4 bytes for addresses, 2 bytes for data.
+
+### DATA mode
+
+When the DATA command is given, TMON switches to interactive data entry mode. This is signified by the prompt changing to a : instead of >. Type Q to exit data entry mode. Enter a hex byte and it will be written to memory at CURRENT ADDR; CURRENT ADDR is then incremented by one.
+
+The DATA entry sysem is very simple and wil be improved in future versions.
 
 
-## Available Commands
+## TMON Available Commands
 
 ### Help commands
 
