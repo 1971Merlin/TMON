@@ -12,7 +12,7 @@ A Southern Cross SC-1 computer, or, a TEC-1F computer
 The TEC-1F must be set up for 8k addresing; TMON requires roughly 4k of RAM
 SCMON version 1.8 or newer, compiled for your machine type
 Bit-banged serial interface connected to a PC or serial terminal.
- - The Serial port is configured with the standard SCMON settings - 4800bps,n,8,2 based on a 4MHz clock
+ - The Serial port is configured with the standard SCMON settings - 4800bps,n,8,2 - based on a 4MHz Z-80 clock
  - Terminal Emulation type VT100 is required (most serial terminal program e.g. PuTTY support VT100 by default)
 
 ## How to use TMON
@@ -41,7 +41,7 @@ The command 'prompt' is the final line:
 
 The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
-
+If you get lost, try entering ? to be reminded about the availalbe commands.
 
 ## Available Commands
 
@@ -59,6 +59,10 @@ INTEL - tranfer an Intel HEX file from PC to SC/TEC
 
 ### Programming Related commands
 
+TMON's CURRENT ADDRESS is used by most commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having the CURRENT ADDRESS automatcially update as a result ofthe ccomnd can be a handy thing e.g. when DUMPing or DISassembling blocks of meory.
+
+INC x - set auto-increment mode of CURRENT ADDRESS. 1 = ON, 0 = OFF. No parameter supplied = Display current mode.
+
 Note - the xxxx represents a memory address input in hexadecimal. xxxx is optional; if specified it will override but not alter the 'current address' pointer. If not specified, the command acts based on the 'current address'.
 
 ADDR xxxx - Set the CURRENT ADDRESS. If no address supplied, display the CURRENT ADDRESS instead.
@@ -66,6 +70,7 @@ GO xxxx - Execute code. The is the equivalent of pressing GO on a classic TEC or
 DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and aSCII outputs so memory can be examined
 DIS xxxx - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time
 DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is caved to the CURRENT ADDDRESS. Enter Q to quit input mode.
+
 
 ### Test & Informational commands
 
@@ -76,3 +81,6 @@ RAMCHK - Runs a test to determine the size and location of any RAM within the Z8
 
 ### Other Commands
 
+
+
+## TMON Souce code
