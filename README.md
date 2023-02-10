@@ -19,9 +19,11 @@ Bit-banged serial interface connected to a PC or serial terminal.
 
 TMON is an interactive tool, that works with a serial terminal e.g. PuTTY or Tera Term on an PC, or a 'real' VT100 serial terminal such as a Wyse WY-60. The SC/TEC keypad and 7-seg displays are not used once the program starts, and do not do anything.
 
+All interactions with TMON are via the serial console. The user types commands and the results are displayed on the terminal.
+
 ### Starting up TMON
 
-Transfer TMON to the SC/TEC by your favourite means - I use SMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
+Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
 Compiled Platform: TEC-1F
@@ -31,7 +33,9 @@ RAM Found between 2000h and 5FFFh - 4000h bytes
 2000 >
 ```
 
-The above is the default display you should see from TMON (Obviously if run on an SC-1 the messages change accordingly). TMON is now awaiting your input and you can type commands from the Availabe Commands list, below.
+## Using TMON
+
+The above text is the default display you should see from TMON upon startup. (Obviously if run on an SC-1 the messages change accordingly). TMON is now awaiting your input and you can type commands from the Available Commands list, given below.
 
 The command 'prompt' is the final line:
 
@@ -41,21 +45,26 @@ The command 'prompt' is the final line:
 
 The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
-If you get lost, try entering ? to be reminded about the availalbe commands.
+If you get lost, try entering ? to be reminded about the available commands.
+
+Invalid inputs are typically ignored, and results in the user simply being returned to the command prompt.
+
+The maximum command length is 40 characters, however presently the longest valid command possible is 9 characters in length.
+
 
 ## Available Commands
 
 ### Help commands
 
-EXIT  - Quites to SCMON
+EXIT  - Quits TMON and returns you to SCMON
 
-HELP  - Help information
+HELP  - Displays some Helpfull information about how to use TMON
 
-? - List of commands
+? - Displays a List of TMON commands
 
-LIST - alias for HELP
+LIST - List is an alias for the HELP command
 
-CLS - clears the screen
+CLS - clears the terminal screen
 
 ### File Transfer commands
 
@@ -63,7 +72,7 @@ INTEL - tranfer an Intel HEX file from PC to SC/TEC
 
 ### Programming Related commands
 
-TMON's CURRENT ADDRESS is used by most commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having the CURRENT ADDRESS automatcially update as a result ofthe ccomnd can be a handy thing e.g. when DUMPing or DISassembling blocks of meory.
+TMON's CURRENT ADDRESS is used by the commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having the CURRENT ADDRESS automativally update as a result of the command as it runs can be a handy thing e.g. when DUMPing or DISassembling blocks of memory.
 
 INC x - set auto-increment mode of CURRENT ADDRESS. 1 = ON, 0 = OFF. No parameter supplied = Display current mode.
 
@@ -74,7 +83,6 @@ GO xxxx - Execute code. The is the equivalent of pressing GO on a classic TEC or
 DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and aSCII outputs so memory can be examined
 DIS xxxx - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time
 DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is caved to the CURRENT ADDDRESS. Enter Q to quit input mode.
-
 
 ### Test & Informational commands
 
