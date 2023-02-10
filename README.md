@@ -58,7 +58,7 @@ The DATA entry sysem is very simple and wil be improved in future versions.
 
 ## TMON Available Commands
 
-### Help commands
+### Help  and general commands
 
 EXIT  - Quits TMON and returns you to SCMON
 
@@ -91,7 +91,10 @@ DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; 
 ### Test & Informational commands
 
 BEEP  - makes a beep sound on the SC/TEC
+
 VER - Displays the TMON and SCMON versions
+
 HARDWARE - Returns the machine type - SC-1 or TEC-1F
+
 RAMCHK - Runs a test to determine the size and location of any RAM within the Z80's 64k address space. Will pick up multiple RAM blocks even if not contiguous.
 
