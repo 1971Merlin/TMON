@@ -1,7 +1,5 @@
 # TMON
-TMON is a serial terminal and monitor for the SC-1 and TEC-1F computers.
-
-This program is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
+TMON is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
 
 Note: This code requires the SCMON Monitor, version 1.8 or higher, available from https://github.com/crsjones/Southern-Cross-Computer-z80/tree/main/SouthernCrossSBC_Monitor
 
@@ -39,11 +37,9 @@ The above text is the default display you should see from TMON upon startup. (Ob
 
 The command 'prompt' is the final line displayed:
 
-````
-2000 > 
-````
+> 2000 > 
 
-User commands are entered at this prompt.
+User commands are entered at this prompt via the serial port.
 
 The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
@@ -51,7 +47,7 @@ If you get lost, try entering ? to be reminded about the available commands.
 
 The comand input editor is very simple. Invalid inputs are typically ignored, and results in the user simply being returned to the command prompt. The maximum command length accepted is 20 characters, however presently the longest valid command possible is 9 characters in length. When the user's input exceeds the maximum command length, the SC/TEC will emit a beep tone to indicate this condition has been reached. Backspace is supported, to correct typo's.
 
-All data entered at all times is assumeed to be HEX - 4 bytes for addresses, 2 bytes for data.
+All data entered at all times is assumed to be HEX - 4 bytes for addresses, 2 bytes for data. Invalid data input is ignored.
 
 ### DATA mode
 
