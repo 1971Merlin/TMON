@@ -48,9 +48,13 @@ If you get lost, try entering ? to be reminded about the availalbe commands.
 ### Help commands
 
 EXIT  - Quites to SCMON
+
 HELP  - Help information
+
 ? - List of commands
+
 LIST - alias for HELP
+
 CLS - clears the screen
 
 ### File Transfer commands
@@ -79,8 +83,3 @@ VER - Displays the TMON and SCMON versions
 HARDWARE - Returns the machine type - SC-1 or TEC-1F
 RAMCHK - Runs a test to determine the size and location of any RAM within the Z80's 64k address space. Will pick up multiple RAM blocks even if not contiguous.
 
-### Other Commands
-
-
-
-## TMON Souce code
