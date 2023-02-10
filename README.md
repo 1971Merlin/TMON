@@ -1,5 +1,5 @@
 # TMON
-TMON - a serial terminal and monitor for the SC-1 and TEC-1F computers
+TMON is a serial terminal and monitor for the SC-1 and TEC-1F computers.
 
 This program is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
 
@@ -9,9 +9,9 @@ Note: This code requires the SCMON Monitor, version 1.8 or higher, available fro
 ## Requirements
 
 A Southern Cross SC-1 computer, or, a TEC-1F computer
-The TEC-1F must be set up for 8k addresing and requires 8k of RAM
+The TEC-1F must be set up for 8k addresing; TMON requires roughly 4k of RAM
 SCMON version 1.8 or newer, compiled for your machine type
-Bit-banged serial interface to a PC or serial terminal.
+Bit-banged serial interface connected to a PC or serial terminal.
  - The Serial port is configured with the standard SCMON settings - 4800bps,n,8,2 based on a 4MHz clock
  - Terminal Emulation type VT100 is required (most serial terminal program e.g. PuTTY support VT100 by default)
 
