@@ -24,9 +24,9 @@ All interactions with TMON are via the serial console. The user types commands a
 Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
-Compiled Platform: TEC-1F
-TMON Version 0.2b
-MONitor ROM version: 1.8
+TMON Version 0.3b
+SCMON version: 1.8
+Compiled Platform: TEC-1F, Hardware keyboard
 RAM Found between 2000h and 5FFFh - 4000h bytes
 2000 >
 ```
