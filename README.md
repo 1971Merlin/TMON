@@ -6,12 +6,12 @@ Note: This code requires the SCMON Monitor, version 1.8 or higher, available fro
 
 ## Requirements
 
-A Southern Cross SC-1 computer, or, a TEC-1F computer
-The TEC-1F must be set up for 8k addresing; TMON requires roughly 4k of RAM
-SCMON version 1.8 or newer, compiled for your machine type
-Bit-banged serial interface connected to a PC or serial terminal.
- - The Serial port is configured with the standard SCMON settings - 4800bps,n,8,2 - based on a 4MHz Z-80 clock
- - Terminal Emulation type VT100 is required (most serial terminal program e.g. PuTTY support VT100 by default)
+- A Southern Cross SC-1 computer, or, a TEC-1F computer
+- The TEC-1F must be set up for 8k addresing; TMON requires roughly 4k of RAM
+- SCMON version 1.8 or newer, compiled for your machine type
+- Bit-banged serial interface connected to a PC or serial terminal.
+- The Serial port is configured with the standard SCMON settings - 4800bps,N,8,2 - based on a 4MHz Z-80 clock
+- Terminal Emulation type VT100 is required (most serial terminal programs e.g. PuTTY support VT100 by default)
 
 ## How to use TMON
 
