@@ -94,7 +94,10 @@ BEEP  - makes a beep sound on the SC/TEC
 
 VER - Displays the TMON and SCMON versions
 
-HARDWARE - Returns the machine type - SC-1 or TEC-1F
+HARDWARE - Returns the machine type - SC-1 or TEC-1F, and the keyboard type, Hardware (74c923) or Software (scanned)
 
 RAMCHK - Runs a test to determine the size and location of any RAM within the Z80's 64k address space. Will pick up multiple RAM blocks even if not contiguous.
 
+### Other commands
+
+SCSM - Calls SCMON's built in serial monitor
