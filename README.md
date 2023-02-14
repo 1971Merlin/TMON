@@ -76,9 +76,9 @@ INTEL - tranfer an Intel HEX file from PC to SC/TEC
 
 ### Programming Related commands
 
-TMON's CURRENT ADDRESS is used by the commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having the CURRENT ADDRESS automativally update as a result of the command as it runs can be a handy thing e.g. when DUMPing or DISassembling blocks of memory.
+TMON's CURRENT ADDRESS is used by the commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having the CURRENT ADDRESS automatically update as a result of the command as it runs can be a handy thing e.g. when DUMPing or DISassembling blocks of memory.
 
-INC x - set auto-increment mode of CURRENT ADDRESS. 1 = ON, 0 = OFF. No parameter supplied = Display current mode.
+INC ON/OFF - set auto-increment mode of CURRENT ADDRESS. No parameter supplied = Display current auto-increment mode.
 
 Note - the xxxx represents a memory address input in hexadecimal. xxxx is optional; if specified it will override but not alter the 'current address' pointer. If not specified, the command acts based on the 'current address'.
 
@@ -87,6 +87,8 @@ GO xxxx - Execute code. The is the equivalent of pressing GO on a classic TEC or
 DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and aSCII outputs so memory can be examined
 DIS xxxx - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time
 DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is caved to the CURRENT ADDDRESS. Enter Q to quit input mode.
+
+DUMP and DATA pause at completion - space repeats the command (address continues to count up if aut-incremernt is on; otherwise same block repeats). Q quits and returns to the command prompt.dis
 
 ### Test & Informational commands
 
