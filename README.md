@@ -103,3 +103,5 @@ RAMCHK - Runs a test to determine the size and location of any RAM within the Z8
 ### Other commands
 
 SCSM - Calls SCMON's built in serial monitor
+
+7SEG - Displays the CURRENT ADDRESS and byte of memory on the TEC/SC 7-seg displays until a TEC/SC key is pressed. 0 exits to TMON, any other TEC/SC key increments CURRENT ADDRESS and continues.
