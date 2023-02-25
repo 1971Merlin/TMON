@@ -51,9 +51,17 @@ All data entered at all times is assumed to be HEX - 4 bytes for addresses, 2 by
 
 ### DATA mode
 
-When the DATA command is given, TMON switches to interactive data entry mode. This is signified by the prompt changing to a : instead of >. Type Q to exit data entry mode. Enter a hex byte and it will be written to memory at CURRENT ADDR; CURRENT ADDR is then incremented by one.
+When the DATA command is given, TMON switches to interactive data entry mode. This is signified by the prompt changing as follows:
 
-The DATA entry sysem is very simple and wil be improved in future versions.
+> XXXX NN :
+
+XXXX continues to represent the CURRENT ADDRESS however the NN represents the HEX byte stored at that address, which you are presently editing.
+
+Enter a HEX byte and it will be written to memory at CURRENT ADDR; CURRENT ADDR is then incremented by one. 
+Pressing ENTER without inputting a new value leaves the existing value as-is and increments CADDR. In this way any bytes you don't wish to modify are skipped over.
+Type Q to exit data entry mode.
+
+The DATA entry system is very simple and will continue to be improved in future versions.
 
 
 ## TMON Available Commands
@@ -84,11 +92,12 @@ Note - the xxxx represents a memory address input in hexadecimal. xxxx is option
 
 ADDR xxxx - Set the CURRENT ADDRESS. If no address supplied, display the CURRENT ADDRESS instead.
 GO xxxx - Execute code. The is the equivalent of pressing GO on a classic TEC or Fn 0 on an SC.
-DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and aSCII outputs so memory can be examined
+DUMP xxxx - DUMP the contents of 64 bytes of memory; provides HEX and ASCII outputs so memory can be examined. 
 DIS xxxx - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time
-DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is caved to the CURRENT ADDDRESS. Enter Q to quit input mode.
 
-DUMP and DATA pause at completion - space repeats the command (address continues to count up if aut-incremernt is on; otherwise same block repeats). Q quits and returns to the command prompt.dis
+DUMP and DIS pause at completion - space repeats the command (address continues to count up if auto-increment is on; otherwise same block repeats). Q quits and returns to the command prompt.
+
+DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; the value input is saved to the CURRENT ADDDRESS. Enter Q to quit input mode.
 
 ### Test & Informational commands
 
