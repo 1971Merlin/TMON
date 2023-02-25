@@ -1,8 +1,7 @@
 # TMON
-TMON is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
+TMON is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port that is built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
 
 Note: This code requires the SCMON Monitor, version 1.8 or higher, available from https://github.com/crsjones/Southern-Cross-Computer-z80/tree/main/SouthernCrossSBC_Monitor
-
 
 ## Requirements
 
@@ -24,10 +23,10 @@ All interactions with TMON are via the serial console. The user types commands a
 Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
-TMON Version 0.3b
+TMON Version 0.4b
 SCMON version: 1.8
 Compiled Platform: TEC-1F, Hardware keyboard
-RAM Found between 2000h and 5FFFh - 4000h bytes
+RAM Found between 2000h and 5FFFh - 16384 bytes
 2000 >
 ```
 
