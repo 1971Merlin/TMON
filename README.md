@@ -120,22 +120,24 @@ SCSM - Calls SCMON's built in serial monitor
 
 ### 0.4b
 
-Prep for first public release.
-Added command for testing 7 seg displays.
-Improved DATA made for inputting data, allows skipping bytes that don't need changing.
+- Prep for first public release
+- Added command for testing 7 seg displays
+- Improvements to DATA:
+  - Allow skipping bytes that don't need changing by just pressin ENTER
+  - Allow on the fly disassembly to check code
 
 ### 0.3b
 
-Convert all Systems Calls from hard coded to SCMON includes file.
-Added keyboard type.
-Added command for calling SCSM
+- Convert all Systems Calls from hard coded to SCMON includes file.
+- Added keyboard type.
+- Added command for calling SCSM
 
 ### 0.2b
 
-Add Jim's Disassembler.
-Add single-word commands.
+- Add Jim's Disassembler
+- Add single-word commands
 
 ### 0.1b
 
-First working code.
-One letter commands.
+- First working code
+- One letter commands
