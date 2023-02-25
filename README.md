@@ -20,14 +20,14 @@ All interactions with TMON are via the serial console. The user types commands a
 
 ### Starting up TMON
 
-Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
+Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 20 seconds to transfer the nearly 4k of HEX code. TMON loads into memory from address 2000h. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
 TMON Version 0.4b
 SCMON version: 1.8
 Compiled Platform: TEC-1F, Hardware keyboard
 RAM Found between 2000h and 5FFFh - 16384 bytes
-2000 >
+3000 >
 ```
 
 ## Using TMON
@@ -36,11 +36,11 @@ The above text is the default display you should see from TMON upon startup. (Ob
 
 The command 'prompt' is the final line displayed:
 
-> 2000 > 
+> 3000 > 
 
 User commands are entered at this prompt via the serial port.
 
-The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
+The 3000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
 If you get lost, try entering ? to be reminded about the available commands.
 
