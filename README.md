@@ -29,7 +29,7 @@ TMON Version 0.4b
 SCMON version: 1.8
 Compiled Platform: TEC-1F, Hardware keyboard
 RAM Found between 2000h and 5FFFh - 16384 bytes
-3000 >
+2000 >
 ```
 
 ## Using TMON
@@ -38,11 +38,11 @@ The above text is the default display you should see from TMON upon startup. (Ob
 
 The command 'prompt' is the final line displayed:
 
-> 3000 > 
+> 2000 > 
 
 User commands are entered at this prompt via the serial port.
 
-The 3000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
+The 2000 represents the CURRENT ADDRESS in HEX. Many commands default to their actions interacting with memory at this address. The CURRENT ADDRESS changes as you interact with TMON e.g. inputting code and data, and can be set by the ADDR command.
 
 If you get lost, try entering ? to be reminded about the available commands.
 
