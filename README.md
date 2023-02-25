@@ -56,16 +56,17 @@ When the DATA command is given, TMON switches to interactive data entry mode. Th
 
 XXXX continues to represent the CURRENT ADDRESS however the NN represents the HEX byte stored at that address, which you are presently editing.
 
-Enter a HEX byte and it will be written to memory at CURRENT ADDR; CURRENT ADDR is then incremented by one. 
-Pressing ENTER without inputting a new value leaves the existing value as-is and increments CADDR. In this way any bytes you don't wish to modify are skipped over.
-Type Q to exit data entry mode.
+- Enter a HEX byte and it will be written to memory at CURRENT ADDR; CURRENT ADDR is then incremented by one. 
+- Pressing ENTER without inputting a new value leaves the existing value as-is and increments CADDR. In this way any bytes you don't wish to modify are skipped over.
+- Enter the key word DIS (instead of a hex byte) to disasemble the current instruction at CADDR. This allows you to check the data you're entering is at the code point you expect it to be. Note that if you enter DIS while you are on the second or third byte of a multi-byte opcode, the disasembled instruction will be incorrect -- DIS always assumes the current address points to the first byte of an instruction.
+- Type Q to exit data entry mode.
 
 The DATA entry system is very simple and will continue to be improved in future versions.
 
 
 ## TMON Available Commands
 
-### Help  and general commands
+### Help and General commands
 
 EXIT  - Quits TMON and returns you to SCMON
 
