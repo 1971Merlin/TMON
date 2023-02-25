@@ -1,14 +1,16 @@
 # TMON
-TMON (short for Terminal MONitor) is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port that is built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
+TMON (short for Terminal MONitor) is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port that is built into the machine, in conjunction with the SCMON Monitor ROM.
 
-Note: This code requires the SCMON Monitor, version 1.8 or higher, available from https://github.com/crsjones/Southern-Cross-Computer-z80/tree/main/SouthernCrossSBC_Monitor
+The program runs without alteration on either the Talking Electronics TEC-1F or the Southern Cross SC-1 hardware, as it uses the SCMON System Calls library to communicate with the hardware of either machine.
+
+Note: This code requires the SCMON Monitor, version 1.8 or higher, available from https://github.com/crsjones/Southern-Cross-Computer-z80/tree/main/SouthernCrossSBC_Monitor be sure to use the correct version for your hardware.
 
 ## Requirements
 
 - A Southern Cross SC-1 computer, or, a TEC-1F computer
 - The TEC-1F must be set up for 8k addresing; TMON requires roughly 4k of RAM
-- SCMON version 1.8 or newer, compiled for your machine type
-- Bit-banged serial interface connected to a PC or serial terminal.
+- SCMON version 1.8 or newer
+- Bit-banged serial interface connected to a PC or serial terminal
 - The Serial port is configured with the standard SCMON settings - 4800bps,N,8,2 - based on a 4MHz Z-80 clock
 - Terminal Emulation type VT100 is required (most serial terminal programs e.g. PuTTY support VT100 by default)
 
@@ -16,7 +18,7 @@ Note: This code requires the SCMON Monitor, version 1.8 or higher, available fro
 
 TMON is an interactive tool, that works with a serial terminal e.g. PuTTY or Tera Term on an PC, or a 'real' VT100 serial terminal such as a Wyse WY-60. The SC/TEC keypad and 7-seg displays are not used once the program starts, and do not do anything.
 
-All interactions with TMON are via the serial console. The user types commands and the results are displayed on the terminal.
+Interactions with TMON are via the serial console. The user types commands and the results are displayed on the terminal.
 
 ### Starting up TMON
 
@@ -127,6 +129,7 @@ SCSM - Calls SCMON's built in serial monitor
 - Improvements to DATA:
   - Allow skipping bytes that don't need changing by just pressin ENTER
   - Allow on the fly disassembly to check code
+- Added BELL command
 
 ### 0.3b
 
