@@ -103,6 +103,8 @@ DATA xxxx - Interactively Input data into memory. Input one hex byte at a time; 
 
 BEEP  - makes a beep sound on the SC/TEC
 
+BELL - makes a bell sound on the serial terminal
+
 VER - Displays the TMON and SCMON versions
 
 HARDWARE - Returns the machine type - SC-1 or TEC-1F, and the keyboard type, Hardware (74c923) or Software (scanned)
