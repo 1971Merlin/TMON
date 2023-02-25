@@ -1,5 +1,5 @@
 # TMON
-TMON is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port that is built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
+TMON (short for Terminal MONitor) is a complete serial port based monitor for the SC-1 and TEC-1F series of Z-80 computers. TMON uses the 'bit banged' serial port that is built into the machine, in conjunction with the SCMON Monitor ROM. The program runs without alteration on either platform as it uses the SCMON System Calls library to communicate with the hardware of either machine independently.
 
 Note: This code requires the SCMON Monitor, version 1.8 or higher, available from https://github.com/crsjones/Southern-Cross-Computer-z80/tree/main/SouthernCrossSBC_Monitor
 
