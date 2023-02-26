@@ -119,6 +119,7 @@ SCSM - Calls SCMON's built in serial monitor
 
 7SEG - Displays the CURRENT ADDRESS and byte of memory on the TEC/SC 7-seg displays until a TEC/SC key is pressed. 0 exits to TMON; + and - TEC/SC keys increments/decrements CURRENT ADDRESS and continues.
 
+SMON - Serial data steam monitor. Accepts serial input from the terminal and displays the HEX bytes received on screen. Great for debugging terminal comms and understaning control codes received from the PC (e.g. VT100 sequences). Enter Q (capital) to exit SMON.
 
 ## Changelog
 
