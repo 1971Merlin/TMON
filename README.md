@@ -102,11 +102,11 @@ TMON's CURRENT ADDRESS or CADDR is used by the commands in this section, however
 
 **DUMP xxxx** - DUMP the contents of 64 bytes of memory; provides HEX and ASCII outputs so memory can be examined. 
 
-**DIS xxxx** - Disasemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time.
+**DIS xxxx** - Disassemble Z80 instructions. Provides a disassembly of the opcodes found in memory, 16 opcodes at a time. The disassembler is an improved version of Jim Robertson's disassembler from Talking Electronics days; the two original design omisions have been added in, the code can now run from anywhere in memory, and various optimizations have been applied. Many thanks to Brian Chiha for his work on the disassembler.
 
-DUMP and DIS pause at completion - space repeats the command (CADDR continues to increment if auto-increment is on; otherwise same block repeats). Q quits and returns to the command prompt.
+DUMP and DIS pause at completion - space repeats the command (CADDR continues to increment if auto-increment is on; otherwise same block repeats). Q quits and returns to the command prompt. This allows you to quickly run through larger blocks without needing to type commands repeatedly.
 
-**DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode.
+**DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode. See full description of DATA mode, above.
 
 ### Test & Informational commands
 
