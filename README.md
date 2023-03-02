@@ -60,7 +60,7 @@ When the DATA command is given, TMON switches to interactive data entry mode. Th
 > XXXX NN :
 ````
 
-XXXX continues to represent the CURRENT ADDRESS(a.k.a. CADDR) however the NN represents the HEX byte stored at that address, which you are presently editing.
+XXXX continues to represent the CADDR however the NN represents the HEX byte stored at that address, which you are presently editing.
 
 - Enter a HEX byte and it will be written to memory at CADDR; CURRENT ADDR is then incremented by one. 
 - Pressing ENTER without inputting a new value leaves the existing value as-is and increments CADDR. In this way any bytes you don't wish to modify are skipped over.
@@ -78,7 +78,7 @@ The DATA entry system is very simple and will continue to be improved in future 
 
 **HELP** - Displays some Helpfull information about how to use TMON
 
-? - Displays a List of TMON commands
+**?** - Displays a List of TMON commands
 
 **LIST** - List is an alias for the HELP command
 
@@ -92,9 +92,9 @@ The DATA entry system is very simple and will continue to be improved in future 
 
 TMON's CURRENT ADDRESS or CADDR is used by the commands in this section, however this can be over-ridden if a specifc HEX address is given as part of the command. Having CADDR automatically update as a result of the command as it runs can be a handy thing e.g. when DUMPing or DISassembling blocks of memory.
 
-**INC [ON/OFF]** - set auto-increment mode of CADDR. No parameter supplied = Display the current auto-increment mode. Sometimes turning CADDR off is helpful.
+**INC ON/OFF** - set auto-increment mode of CADDR. No parameter supplied = Display the current auto-increment mode. Sometimes turning CADDR off is helpful.
 
-*Note for the following commands - the xxxx represents a memory address input in hexadecimal. xxxx is optional; if specified it will override but not alter the CADDR pointer. If not specified, the command acts based on the 'current address'.*
+*Note for the following commands - the xxxx represents an optional memory address input in hexadecimal. If specified the address will override but not alter the CADDR pointer. If not specified, the command acts based on the 'current address'.*
 
 **ADDR xxxx** - Set the CURRENT ADDRESS. If no address supplied, display the CADDR instead.
 
