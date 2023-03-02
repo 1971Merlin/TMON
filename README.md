@@ -57,7 +57,7 @@ All data entered at all times is assumed to be HEX - 4 bytes for addresses, 2 by
 When the DATA command is given, TMON switches to interactive data entry mode. This is signified by the prompt changing as follows:
 
 ````
-> XXXX NN :
+XXXX NN :
 ````
 
 XXXX continues to represent the CADDR however the NN represents the HEX byte stored at that address, which you are presently editing.
