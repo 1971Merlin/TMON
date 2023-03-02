@@ -62,10 +62,11 @@ XXXX NN :
 
 XXXX continues to represent the CADDR however the NN represents the HEX byte stored at that address, which you are presently editing.
 
-- Enter a HEX byte and it will be written to memory at CADDR; CURRENT ADDR is then incremented by one. 
-- Pressing ENTER without inputting a new value leaves the existing value as-is and increments CADDR. In this way any bytes you don't wish to modify are skipped over.
-- Enter the key word DIS (instead of a hex byte) to disasemble the current instruction at CADDR. This allows you to check the data you're entering is at the code point you expect it to be. Note that if you enter DIS while you are on the second or third byte of a multi-byte opcode, the disassembled instruction will be incorrect -- DIS always assumes the current address points to the first byte of an instruction.
-- Type Q to exit data entry mode.
+- Enter a **HEX byte** and it will be written to memory at CADDR; CURRENT ADDR is then incremented by one. 
+- Pressing **ENTER** increments CADDR by one and leaves the existing value as-is. In this way any bytes you don't wish to modify are skipped over.
+- Enter **-** and CADDR will be decremented by one. This allows for correcting input errors and checking your input by following up with DIS command.
+- Enter the key word **DIS** (instead of a hex byte) to disasemble the current instruction at CADDR. This allows you to check the data you're entering is at the code point you expect it to be. *Note that if you enter DIS while you are on the second or third byte of a multi-byte opcode, the disassembled instruction will be incorrect as DIS assumes that CADDR points to the first byte of an instruction.*
+- Enter **Q** to exit data entry mode.
 
 The DATA entry system is very simple and will continue to be improved in future versions.
 
