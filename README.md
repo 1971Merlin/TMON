@@ -38,7 +38,9 @@ The above text is the default display you should see from TMON upon startup. (Ob
 
 The command 'prompt' is the final line displayed:
 
-> 2000 > 
+````
+2000 > 
+````
 
 User commands are entered at this prompt via the serial port.
 
@@ -54,7 +56,9 @@ All data entered at all times is assumed to be HEX - 4 bytes for addresses, 2 by
 
 When the DATA command is given, TMON switches to interactive data entry mode. This is signified by the prompt changing as follows:
 
+````
 > XXXX NN :
+````
 
 XXXX continues to represent the CURRENT ADDRESS(a.k.a. CADDR) however the NN represents the HEX byte stored at that address, which you are presently editing.
 
