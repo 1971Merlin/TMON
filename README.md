@@ -22,7 +22,9 @@ Interactions with TMON are via the serial console. The user types commands inter
 
 ### Starting up TMON
 
-Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 25 seconds to transfer the ~4k of HEX code. TMON loads into memory from address 2000h. Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
+Transfer TMON to the SC/TEC by your favourite means - I use SCMON's built in Intel HEX transfer; it takes about 25 seconds to transfer the ~4k of HEX code. TMON loads into memory from address 2000h. You can also write it to NVRAM; however it will not run from ROM as-is, since the internal variables expect to be stored in RAM.
+
+Once you have TMON loaded onto the SC/TEC, run it in the usual fashion and look at your serial terminal.
 
 ```
 TMON Version 0.4b
@@ -81,8 +83,6 @@ The DATA entry system is very simple and will continue to be improved in future 
 
 **?** - Displays a List of TMON commands
 
-**LIST** - List is an alias for the HELP command
-
 **CLS** - Clears the terminal screen
 
 ### File Transfer commands
@@ -140,8 +140,23 @@ DUMP and DIS pause at completion - space repeats the command (CADDR continues to
 
 If a terminal program such as Tera Term is used to add a small delay (e.g 20ms) between bytes transmitted from the PC, SMON can accurately show VT100 control codes such as a PC arrow or function key. Without the delay, the bitbang serial normally gets the first byte only, or perhaps the first and fourth or fifth byte, hence demonstrating the limitations of the bitbang interface.
 
+### Assembling TMON from source
+
+TMON assembles using Telemark TASM asembler. The syntax is fairly generic Z80 and should assemble with minimal changes on most assemblers.
+
+Note that you will also require the SCMON INCLUDE file scm18_include.asm from SCMON - available from the SCMON link at the top of this document.
+
+TMON may be compiled to run from anywhere in memory space by altering the .ORG statement at the top of the code. There are no hard coded addresses. The SCMON includes file also takes care of all the hardware-specific differences beteween the TEC-1F and the SC-1..oyu do not need to reassemble the code to switch from one machine to the other. Just ensure the machine is running the version of SCMON designed for that hardware.
+
+As TMON is open source and licenced under GPLv3, feel free to fix bugs, add features and whatnot using the normal GitHub tools and in accordance with GPL principals.
+
 
 ## Changelog
+
+### 1.0
+
+- First Public Release
+- Removed redundant LIST command
 
 ### 0.4b
 
