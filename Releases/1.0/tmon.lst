@@ -1,0 +1,3046 @@
+0001   0000             ; -----------------------------------------------------------------------------
+0002   0000             ; TMON - a serial monitor for the SC-1 and TEC-1F computers
+0003   0000             ;
+0004   0000             ; Requires SCMON; the Southern Cross Monitor, version 1.8 or newer
+0005   0000             ;
+0006   0000             ; Written by Craig Hart and released under the GPL v3 license
+0007   0000             ;
+0008   0000             ; https://github.com/1971Merlin/TMON
+0009   0000             ;
+0010   0000             ;
+0011   0000             ; Disassembler code by Jim Robertson with improvements by Brian Chiha
+0012   0000             ; and further updates by Craig Hart
+0013   0000             ;
+0014   0000             ; -----------------------------------------------------------------------------
+0015   0000             
+0016   0000             ; bring in SCMON library
+0017   0000             
+0018   0000             #include "C:/Users/user/OneDrive/TEC-1/SC-1/TMON/scm18_include.asm"
+0001+  0000             ;--------------------------------------------
+0002+  0000             ; S O U T H E R N   C R O S S   M O N I T O R
+0003+  0000             ;--------------------------------------------
+0004+  0000             ;
+0005+  0000             ;  MONITOR DEFINITIONS FILE 
+0006+  0000             ;  Version 1.8
+0007+  0000             ;
+0008+  0000             ; WRITTEN BY CRAIG R. S. JONES
+0009+  0000             ; MELBOURNE, AUSTRALIA.
+0010+  0000             ;
+0011+  0000             ;---------------
+0012+  0000             ; RAM MEMORY MAP
+0013+  0000             ;---------------
+0014+  0000             BOTRAM	.EQU	2000H	;BOTTOM OF SRAM
+0015+  0000             TOPRAM	.EQU	3FFFH	;TOP OF SRAM
+0016+  0000             ;
+0017+  0000             VARBLS	.EQU	TOPRAM-0FFH	;MONITOR VARIABLES
+0018+  0000             BUFFER	.EQU	VARBLS-0100H	;GENERAL PURPOSE BUFFER AREA
+0019+  0000             ISTACK	.EQU	BUFFER - 0200H	;INITIAL MONITOR STACK
+0020+  0000             ;
+0021+  0000             RAMEND	.EQU	ISTACK-0400H	;END OF USER RAM
+0022+  0000             RAMSRT	.EQU	BOTRAM	;START OF USER RAM
+0023+  0000             ;
+0024+  0000             ; BIT BANG BAUD RATE CONSTANTS
+0025+  0000             ;
+0026+  0000             B300	.EQU	0220H	;300 BAUD
+0027+  0000             B1200	.EQU	0080H	;1200 BAUD
+0028+  0000             B2400	.EQU	003FH	;2400 BAUD
+0029+  0000             B4800	.EQU	001BH	;4800 BAUD
+0030+  0000             B9600	.EQU	000BH	;9600 BAUD
+0031+  0000             ;
+0032+  0000             ; KEY CODES
+0033+  0000             ;
+0034+  0000             KEYFN	.EQU	10H	;FN OR GO KEY
+0035+  0000             KEYAD	.EQU	11H	;ADDRESS KEY
+0036+  0000             KEYINC	.EQU	12H	;PLUS KEY
+0037+  0000             KEYDEC	.EQU	13H	;MINUS KEY
+0038+  0000             ;-------------------------
+0039+  0000             ; MONITOR GLOBAL VARIABLES
+0040+  0000             ;-------------------------
+0041+  0000             ;
+0042+  3F00             	.ORG	VARBLS
+0043+  3F00             ;
+0044+  3F00             ;SERIAL MONITOR VARIABLES
+0045+  3F00             ;
+0046+  3F00             VARIDX	.BLOCK	16	;RESERVE SOME SPACE FOR INDEXED VARIABLES (SEE INTELH)
+0047+  3F10             SPSAVE	.BLOCK	2	;SAVE THE STACK POINTER
+0048+  3F12             ADDR	.BLOCK	2	;THE ADDRESS
+0049+  3F14             DATA	.BLOCK	1	;THE DATA
+0050+  3F15             ;
+0051+  3F15             FUNTBL	.BLOCK	 2	;FN TABLE ADDRESS
+0052+  3F17             ;
+0053+  3F17             ; DALLAS SMARTWATCH REGISTERS
+0054+  3F17             ;
+0055+  3F17             CALMDE	.BLOCK	2	;CALENDAR MODE
+0056+  3F19             SWREG0	.BLOCK	1	;10THS, 100THS
+0057+  3F1A             SWREG1	.BLOCK	1	;SECONDS
+0058+  3F1B             SWREG2	.BLOCK	1	;MINUTES
+0059+  3F1C             SWREG3	.BLOCK	1	;HOURS
+0060+  3F1D             SWREG4	.BLOCK	1	;DAY
+0061+  3F1E             SWREG5	.BLOCK	1	;DATE
+0062+  3F1F             SWREG6	.BLOCK	1	;MONTH
+0063+  3F20             SWREG7	.BLOCK	1	;YEAR
+0064+  3F21             ;
+0065+  3F21             BAUD	.BLOCK	2	;BIT BANG BAUD RATE
+0066+  3F23             KEYTIM	.BLOCK	2	;BEEP DELAY
+0067+  3F25             SPTEMP	.BLOCK	2	;TEMP SYSTEM CALL SP
+0068+  3F27             ;
+0069+  3F27             ; BLOCK FUNCTIONS
+0070+  3F27             ;
+0071+  3F27             COUNT	.BLOCK	2	;NUMBER OF BYTES TO MOVE
+0072+  3F29             BLKSRT	.BLOCK	2	;BLOCK START ADDRESS
+0073+  3F2B             BLKEND	.BLOCK	2	;BLOCK END ADDRESS
+0074+  3F2D             BLKDST	.BLOCK	2	;DESTINATION ADDRESS
+0075+  3F2F             ;
+0076+  3F2F             FUNJMP	.BLOCK	2	;FN FN KEY JUMP ADDRESS
+0077+  3F31             ;
+0078+  3F31             ; DISPLAY SCAN REGISTERS
+0079+  3F31             ;
+0080+  3F31             DISBUF	.BLOCK	6	;DISPLAY BUFFER
+0081+  3F37             ONTIM	.BLOCK	1	;DISPLAY SCAN ON TIME
+0082+  3F38             OFTIM	.BLOCK	1	;DISPLAY SCAN OFF TIME
+0083+  3F39             ;
+0084+  3F39             ; MONITOR VARIABLES
+0085+  3F39             ;
+0086+  3F39             MODE	.BLOCK	2	;DISPLAY MODE
+0087+  3F3B             ADRESS	.BLOCK	2	;USER ADDRESS
+0088+  3F3D             KEYDEL	.BLOCK	2	;AUTO INCREMENT DELAY
+0089+  3F3F             ;
+0090+  3F3F             ; TEMPORARY REGISTER STORAGE
+0091+  3F3F             ;
+0092+  3F3F             REGPNT	.BLOCK	2	;REGISTER POINTER
+0093+  3F41             TMPPC	.BLOCK	2	;PROGRAM COUNTER
+0094+  3F43             TMPAF	.BLOCK	2	;ACCUMULATOR,FLAG
+0095+  3F45             TMPBC	.BLOCK	2	;BC REGISTER PAIR
+0096+  3F47             TMPDE	.BLOCK	2	;DE REGISTER PAIR
+0097+  3F49             TMPHL	.BLOCK	2	;HL REGISTER PAIR
+0098+  3F4B             TMPIX	.BLOCK	2	;INDEX REGISTER X
+0099+  3F4D             TMPIY	.BLOCK	2	;INDEX REGISTER Y
+0100+  3F4F             TMPSP	.BLOCK	2	;STACK POINTER
+0101+  3F51             ;
+0102+  3F51             ; RESTART JUMP TABLE AND HARWARE TEST
+0103+  3F51             ;
+0104+  3F51             RST08	.BLOCK	2	;RESTART 08H JUMP
+0105+  3F53             RST10	.BLOCK	2	;RESTART 10H JUMP
+0106+  3F55             RST18	.BLOCK	2	;RESTART 18H JUMP
+0107+  3F57             RST20	.BLOCK	2	;RESTART 20H JUMP
+0108+  3F59             RST28	.BLOCK	2	;RESTART 28H JUMP
+0109+  3F5B             RST38	.BLOCK	2	;INT INTERRUPT JUMP
+0110+  3F5D             RST66	.BLOCK	2	;NMI INTERRUPT JUMP
+0111+  3F5F             RAMSUM	.BLOCK	1	;USER RAM CHECKSUM
+0112+  3F60             DALLAS	.BLOCK	1	;RAM TEST LOCATION
+0113+  3F61             SYSERR	.BLOCK	2	;SYSTEM CALL ERROR JUMP
+0114+  3F63             ;--------------------
+0115+  3F63             ; SYSTEM CALL NUMBERS
+0116+  3F63             ;--------------------
+0117+  3F63             ;
+0118+  3F63             ;  LD   C,SYSTEM CALL NUMBER
+0119+  3F63             ;  RST  30H
+0120+  3F63             ;
+0121+  3F63             MAIN	.EQU	0	;RESTART MONITOR
+0122+  3F63             VERS	.EQU	1	;RETURNS MONITOR VERSION
+0123+  3F63             DISADD	.EQU	2	;ADDRESS -> DISPLAY BUFFER
+0124+  3F63             DISBYT	.EQU	3	;DATA -> DISPLAY BUFFER
+0125+  3F63             CLRBUF	.EQU	4	;CLEAR DISPLAY BUFFER
+0126+  3F63             SCAND	.EQU	5	;SCAN DISPLAY
+0127+  3F63             CONBYT	.EQU	6	;BYTE -> DISPLAY CODE
+0128+  3F63             CONVHI	.EQU	7	;HI NYBBLE -> DISPLAY CODE
+0129+  3F63             CONVLO	.EQU	8	;LO NYBBLE - > DISPLAY CODE
+0130+  3F63             SKEYIN	.EQU	9	;SCAN DISPLAY UNTIL KEY PRESS
+0131+  3F63             SKEYRL	.EQU	10	;SCAN DISPLAY UNTIL KEY RELEASE
+0132+  3F63             KEYIN	.EQU	11	;WAIT FOR KEY PRESS
+0133+  3F63             KEYREL	.EQU	12	;WAIT FOR KEY RELEASE
+0134+  3F63             MENU	.EQU	13	;SELECT ENTRY FROM MENU
+0135+  3F63             CHKSUM	.EQU	14	;CALCULATE CHECKSUM
+0136+  3F63             MUL16	.EQU	15	;16 BIT MULTIPLY
+0137+  3F63             RAND	.EQU	16	;GENERATE RANDOM NUMBER
+0138+  3F63             INDEXB	.EQU	17	;INDEX INTO BYTE TABLE
+0139+  3F63             INDEXW	.EQU	18	;INDEX INTO WORD TABLE
+0140+  3F63             MUSIC	.EQU	19	;PLAY MUSIC TABLE
+0141+  3F63             TONE	.EQU	20	;PLAY A NOTE
+0142+  3F63             BEEP	.EQU	21	;KEY ENTRY BEEP
+0143+  3F63             SKATE	.EQU	22	;SCAN 8X8 DISPLAY
+0144+  3F63             TXDATA	.EQU	23	;TRANSMIT SERIAL BYTE
+0145+  3F63             RXDATA	.EQU	24	;RECEIVE SERIAL BYTE
+0146+  3F63             ASCHEX	.EQU	25	;ASCII CODE -> HEX
+0147+  3F63             WWATCH	.EQU	26	;WRITE TO SMART WATCH
+0148+  3F63             RWATCH	.EQU	27	;READ FROM SMART WATCH
+0149+  3F63             ONESEC	.EQU	28	;ONE SECOND DELAY USING SMARTWATCH
+0150+  3F63             RLSTEP	.EQU	29	;RELAY S.EQUENCER
+0151+  3F63             DELONE	.EQU	30	;ONE SECOND DELAY LOOP
+0152+  3F63             SCANKEY .EQU	31	;SCAN THE KEYBOARD
+0153+  3F63             INTELH	.EQU	32	;RECEIVE INTEL HEX FILE
+0154+  3F63             SPLIT	.EQU	33	;SEPARATE A BYTE INTO NYBBLES
+0155+  3F63             SNDMSG	.EQU	34	;SND ZERO TERMINATED STRING TO SERIAL PORT
+0156+  3F63             BITASC	.EQU	35	;CONVERT A BYTE INTO AN ASCII STRING OF ONES AND ZEROES
+0157+  3F63             WRDASC	.EQU	36	;CONVERT A WORD TO ASCII
+0158+  3F63             BYTASC	.EQU	37	;CONVERT A BYTE TO ASCII
+0159+  3F63             NYBASC	.EQU	38	;CONVERT A NYBBLE TO ASCII
+0160+  3F63             PCBTYP	.EQU	39	;RETURNS BOARD TYPE, SC OR TEC-1F
+0161+  3F63             PRNTSZ	.EQU	40	;INLINE SERIAL PRINT STRING
+0162+  3F63             KBDTYP	.EQU	41	;RETURNS KEYBOARD TYPE
+0163+  3F63             UPDATE	.EQU	42  ;UPDATE DISPLAY AND MODE DECIMAL POINT SEGMENTS
+0164+  3F63             VARRAM	.EQU	43	;RETURN BASE VARIABLE ADDRESS
+0165+  3F63             SERINI	.EQU	44	;INITIALISE BIT BANG SERIAL PORT
+0166+  3F63             SCBUG	.EQU	45	;SCBUG SERIAL MONITOR
+0167+  3F63             
+0168+  3F63             ;END OF INCLUDE FILE
+0019   3F63             
+0020   2000             	.org 2000h
+0021   2000             
+0022   2000 3E FF       init:	ld a,0ffh		; assume 1.7 or older; ffh = old!
+0023   2002 0E 01       	ld c,VERS		; get mon version
+0024   2004 F7          	rst 30h
+0025   2005             
+0026   2005 FE FF       	cp 0ffh			; 1.8+ modifies A; older ones don't
+0027   2007 C2 0B 20    	jp nz, newmn
+0028   200A             
+0029   200A 76          	halt			; sorry, too old!!
+0030   200B             
+0031   200B 0E 2C       newmn:	ld c,SERINI		; serial init - 1.8+ only
+0032   200D 21 00 00    	ld hl,0			; 0 = default
+0033   2010 F7          	rst 30h
+0034   2011             
+0035   2011 0E 15       	ld c,BEEP		; beep
+0036   2013 F7          	rst 30h
+0037   2014             
+0038   2014 21 26 26    	ld hl,clrhome		; clear terminal screen
+0039   2017 0E 22       	ld c,SNDMSG
+0040   2019 F7          	rst 30h
+0041   201A             
+0042   201A             ; welcome screen
+0043   201A             
+0044   201A CD 71 22    	call vers		; display ROM version
+0045   201D CD 8A 22    	call hardware		; display machine type
+0046   2020 CD AA 21    	call ramfind		; display RAM stats
+0047   2023             
+0048   2023 21 00 20    	ld hl,2000h
+0049   2026 22 DE 28    	ld (caddr),hl		; setup system location
+0050   2029             
+0051   2029             
+0052   2029             mainloop:
+0053   2029 CD 37 20    	call uprompt		; draw user prompt
+0054   202C CD 0E 21    	call usin		; set a line from the user
+0055   202F CD B5 20    	call usparse		; parse that line
+0056   2032 CD 7A 20    	call match		; look for a valid command & do it
+0057   2035             
+0058   2035 18 F2       	jr mainloop
+0059   2037             
+0060   2037             ; -----------------------------------------------------------------------------
+0061   2037             ; uprompt - draw the default user input prompt
+0062   2037             ; -----------------------------------------------------------------------------
+0063   2037             
+0064   2037             uprompt:
+0065   2037 ED 5B DE 28 	ld de,(caddr)		; fill up prompt with current address
+0066   203B 21 E0 28    	ld hl,prompt		; where to write it
+0067   203E 0E 24       	ld c,WRDASC
+0068   2040 F7          	rst 30h
+0069   2041             
+0070   2041 21 E0 28    	ld hl,prompt		; display main prompt
+0071   2044 0E 22       	ld c,SNDMSG
+0072   2046 F7          	rst 30h
+0073   2047             
+0074   2047 C9          	ret
+0075   2048             
+0076   2048             ; -----------------------------------------------------------------------------
+0077   2048             ; parameter parser - extracts hex address from command params
+0078   2048             ;
+0079   2048             ; input: uparam and uparaml populated with 4 hex digits
+0080   2048             ;
+0081   2048             ; not a lot of error checking so far
+0082   2048             ;
+0083   2048             ; returns: HL = hex word
+0084   2048             ;	   CF = 1 = no data available
+0085   2048             ; -----------------------------------------------------------------------------
+0086   2048             
+0087   2048 3A 72 28    pp:	ld a,(uparaml)
+0088   204B FE 04       	cp 4
+0089   204D D8          	ret c			; exit with Z flag set if <4 chars
+0090   204E 37          	scf			; in order to return C set with ret nz
+0091   204F C0          	ret nz			; must be exactly 4 bytes !!!
+0092   2050             
+0093   2050             
+0094   2050 21 73 28    	ld hl,uparam
+0095   2053             
+0096   2053 CD 62 20    	call pp1
+0097   2056 57          	ld d,a
+0098   2057             
+0099   2057 21 75 28    	ld hl,uparam+2
+0100   205A             
+0101   205A CD 62 20    	call pp1
+0102   205D 5F          	ld e,a
+0103   205E             
+0104   205E 62          	ld h,d
+0105   205F 6B          	ld l,e
+0106   2060 B7          	or a			; clears carry flag
+0107   2061 C9          	ret
+0108   2062             
+0109   2062 7E          pp1:	ld a,(hl)		; 2nd digit
+0110   2063 23          	inc hl
+0111   2064             
+0112   2064 CD 72 20    	call a2hex
+0113   2067 0F          	rrca			; move to upper nibble
+0114   2068 0F          	rrca
+0115   2069 0F          	rrca
+0116   206A 0F          	rrca
+0117   206B 4F          	ld c,a			; save it
+0118   206C 7E          	ld a,(hl)		; 1st digit
+0119   206D CD 72 20    	call a2hex
+0120   2070 B1          	or c			; add in other bit
+0121   2071 C9          	ret
+0122   2072             
+0123   2072 D6 30       a2hex:	sub 30h
+0124   2074 FE 0A       	cp 10
+0125   2076 D8          	ret c
+0126   2077 D6 07       	sub 7
+0127   2079 C9          	ret
+0128   207A             
+0129   207A             ; -----------------------------------------------------------------------------
+0130   207A             ; Command input matcher
+0131   207A             ;
+0132   207A             ; Finds and Executes any matched commands
+0133   207A             ; -----------------------------------------------------------------------------
+0134   207A             
+0135   207A             match:
+0136   207A 21 90 27    	ld hl,cmds
+0137   207D             
+0138   207D 11 57 28    cloop:	ld de,ucmd
+0139   2080 3A 56 28    	ld a,(ucmdl)
+0140   2083 47          	ld b,a
+0141   2084             
+0142   2084 7E          	ld a,(hl)		; outerloop; 0xff terminated
+0143   2085 FE FF       	cp 0ffh
+0144   2087 CA AB 20    	jp z, notfound
+0145   208A             
+0146   208A             ; a = length of command
+0147   208A             ; b = length of input
+0148   208A             
+0149   208A 4F          	ld c,a			; save it
+0150   208B 23          	inc hl			; start of string
+0151   208C             
+0152   208C B8          	cp b			; cant be if different lengths
+0153   208D C2 98 20    	jp nz,notm
+0154   2090             
+0155   2090 E5          	push hl
+0156   2091 CD AC 20    	call cmp
+0157   2094 E1          	pop hl
+0158   2095             
+0159   2095 CA A0 20    	jp z, found		; z = matched
+0160   2098             
+0161   2098             notm:
+0162   2098 0C          	inc c			; skip 2 bytes
+0163   2099 0C          	inc c
+0164   209A 06 00       	ld b,0
+0165   209C 09          	add hl,bc		; next element
+0166   209D             
+0167   209D C3 7D 20    	jp cloop
+0168   20A0             found:
+0169   20A0             
+0170   20A0 06 00       	ld b,0			; c already contains length
+0171   20A2 09          	add hl,bc		; HL already points at string start
+0172   20A3 54          	ld d,h
+0173   20A4 5D          	ld e,l
+0174   20A5             
+0175   20A5 1A          	ld a,(de)
+0176   20A6 6F          	ld l,a
+0177   20A7 13          	inc de
+0178   20A8 1A          	ld a,(de)
+0179   20A9 67          	ld h,a
+0180   20AA             
+0181   20AA E9          	jp (hl)			; the RET of the command returns to main loop
+0182   20AB             
+0183   20AB             notfound:
+0184   20AB C9          	ret			; no match
+0185   20AC             
+0186   20AC             ; -----------------------------------------------------------------------------
+0187   20AC             ; string compare
+0188   20AC             ;
+0189   20AC             ; HL - source
+0190   20AC             ; DE - compare
+0191   20AC             ; B - # bytes
+0192   20AC             ;
+0193   20AC             ; Z flag set = matched
+0194   20AC             ; -----------------------------------------------------------------------------
+0195   20AC             
+0196   20AC 1A          cmp:	ld a,(de)
+0197   20AD BE          	cp (hl)
+0198   20AE C0          	ret nz			;nz means they are not equal
+0199   20AF             
+0200   20AF 23          	inc hl
+0201   20B0 13          	inc de
+0202   20B1 10 F9       	djnz cmp
+0203   20B3             
+0204   20B3 BF          	cp a			; set Z flag for success
+0205   20B4 C9          	ret
+0206   20B5             
+0207   20B5             ; -----------------------------------------------------------------------------
+0208   20B5             ; Command input processor
+0209   20B5             ;
+0210   20B5             ; populates
+0211   20B5             ;	ucmd with asciiz of user input delimited by first space
+0212   20B5             ;	ucmdl with length not including the null
+0213   20B5             ;
+0214   20B5             ;	uparam with asciiz of user input beyond first space
+0215   20B5             ;	uparaml with length not including the null
+0216   20B5             ; -----------------------------------------------------------------------------
+0217   20B5             
+0218   20B5             usparse:
+0219   20B5 AF          	xor a
+0220   20B6 32 56 28    	ld (ucmdl),a
+0221   20B9 4F          	ld c,a			; set counter
+0222   20BA             
+0223   20BA 3A 3A 28    	ld a,(sbufl)
+0224   20BD B7          	or a
+0225   20BE CA 0D 21    	jp z, pdone
+0226   20C1             
+0227   20C1 47          	ld b,a			; max length
+0228   20C2 21 3B 28    	ld hl,sbuf		; from
+0229   20C5 11 57 28    	ld de,ucmd		; to
+0230   20C8             
+0231   20C8 7E          uloop:	ld a,(hl)
+0232   20C9 B7          	or a
+0233   20CA 28 34       	jr z,udone1
+0234   20CC FE 20       	cp 20h			; space char?
+0235   20CE 28 09       	jr z,drest
+0236   20D0             
+0237   20D0 12          	ld (de),a
+0238   20D1 23          	inc hl
+0239   20D2 13          	inc de
+0240   20D3             
+0241   20D3 0C          	inc c
+0242   20D4             
+0243   20D4 10 F2       	djnz uloop		; next until all done
+0244   20D6             
+0245   20D6 C3 00 21    	jp udone1
+0246   20D9             
+0247   20D9             
+0248   20D9             ; if here we got a space - so get the rest of the input
+0249   20D9             ; HL = position in input buffer ucmd
+0250   20D9             ; B = bytes left to go
+0251   20D9             ; C = length of first string
+0252   20D9             
+0253   20D9             ; first finish cleanup of  first string
+0254   20D9             
+0255   20D9             
+0256   20D9 AF          drest:	xor a			; null terminate it
+0257   20DA 12          	ld (de),a
+0258   20DB             
+0259   20DB 79          	ld a,c
+0260   20DC 32 56 28    	ld (ucmdl),a		; store length not incl null
+0261   20DF             
+0262   20DF             
+0263   20DF 78          	ld a,b
+0264   20E0 FE 01       	cp 1			; space on the end ???
+0265   20E2 CA 0D 21    	jp z, pdone
+0266   20E5             
+0267   20E5             ; setup new counters
+0268   20E5 11 73 28    	ld de,uparam		; new to buffer
+0269   20E8 AF          	xor a
+0270   20E9 32 72 28    	ld (uparaml),a		; new length zero bytes
+0271   20EC 4F          	ld c,a
+0272   20ED 23          	inc hl			; skip space
+0273   20EE             
+0274   20EE 7E          ploop:	ld a,(hl)
+0275   20EF B7          	or a
+0276   20F0 28 06       	jr z,pdone1
+0277   20F2             
+0278   20F2 12          	ld (de),a
+0279   20F3 23          	inc hl
+0280   20F4 13          	inc de
+0281   20F5             
+0282   20F5 0C          	inc c
+0283   20F6             
+0284   20F6 10 F6       	djnz ploop		; next until all done
+0285   20F8             
+0286   20F8 AF          pdone1:	xor a			; null terminate it
+0287   20F9 12          	ld (de),a
+0288   20FA             
+0289   20FA 79          	ld a,c
+0290   20FB 32 72 28    	ld (uparaml),a		; store length not incl null
+0291   20FE             
+0292   20FE 18 0D       	jr pdone
+0293   2100             
+0294   2100             ; ucmd now contans the first string only - one word typed in
+0295   2100             
+0296   2100 AF          udone1:	xor a			; null terminate it
+0297   2101 12          	ld (de),a
+0298   2102             
+0299   2102 79          	ld a,c
+0300   2103 32 56 28    	ld (ucmdl),a		; store length not incl null
+0301   2106             
+0302   2106 AF          	xor a
+0303   2107 32 73 28    	ld (uparam),a
+0304   210A 32 72 28    	ld (uparaml),a		; zero out : no parameters
+0305   210D             
+0306   210D C9          pdone:	ret
+0307   210E             
+0308   210E             ; -----------------------------------------------------------------------------
+0309   210E             ; Command input editor - user interactive
+0310   210E             ;
+0311   210E             ; populates	sbuf with user input string
+0312   210E             ;		sbufl with length of string input in bytes
+0313   210E             ; -----------------------------------------------------------------------------
+0314   210E             
+0315   210E AF          usin:	xor a			; no chars input
+0316   210F 32 3A 28    	ld (sbufl),a
+0317   2112 32 3B 28    	ld (sbuf),a
+0318   2115             
+0319   2115 0E 18       sbuflp:	ld c,RXDATA		; wait for a byte input
+0320   2117 F7          	rst 30h
+0321   2118             
+0322   2118             
+0323   2118             ; future VT100 support
+0324   2118             ; bitbang can't keep up with serial data stream though
+0325   2118             
+0326   2118             
+0327   2118 FE 1B       vt:	cp 01bh			; ESC -- special key
+0328   211A 20 05       	jr nz,bsp
+0329   211C             ;	ld c,RXDATA
+0330   211C             ;	rst 30h			; now get byte 2
+0331   211C             ;	cp 01bh
+0332   211C             ;	ret z			; esc esc = outta here
+0333   211C             ;	cp 05bh			; "[" ?
+0334   211C             ;	jr nz,sbuflp
+0335   211C CD 67 22    	call beep
+0336   211F 18 F4       	jr sbuflp
+0337   2121             
+0338   2121             
+0339   2121 FE 7F       bsp:	cp 07fh			; special chars? 7f = backspace
+0340   2123 20 1D       	jr nz,cr
+0341   2125             
+0342   2125             ; backspace code
+0343   2125 3A 3A 28    	ld a,(sbufl)		; cant bksp beyond start
+0344   2128 B7          	or a
+0345   2129 28 EA       	jr z,sbuflp
+0346   212B 3D          	dec a
+0347   212C 32 3A 28    	ld (sbufl),a
+0348   212F             
+0349   212F 0E 22       	ld c,SNDMSG		; back one char
+0350   2131 21 2E 26    	ld hl,bkspc
+0351   2134 F7          	rst 30h
+0352   2135             
+0353   2135 3E 20       	ld a,32			; space -- erase old text
+0354   2137 0E 17       	ld c,TXDATA
+0355   2139 F7          	rst 30h
+0356   213A             
+0357   213A 0E 22       	ld c,SNDMSG		; and back again
+0358   213C 21 2E 26    	ld hl,bkspc
+0359   213F F7          	rst 30h
+0360   2140             
+0361   2140 18 D3       	jr sbuflp
+0362   2142             
+0363   2142             
+0364   2142 FE 0D       cr:	cp 0dh			; 0Dh = enter
+0365   2144 20 13       	jr nz,stor
+0366   2146             
+0367   2146             ; pressed enter code
+0368   2146 21 3B 28    	ld hl,sbuf
+0369   2149 3A 3A 28    	ld a,(sbufl)
+0370   214C 4F          	ld c,a
+0371   214D 06 00       	ld b,0
+0372   214F 09          	add hl,bc
+0373   2150             
+0374   2150 AF          	xor a			; add the 0 on the end of string
+0375   2151 77          	ld (hl),a
+0376   2152             
+0377   2152 21 7D 26    	ld hl,crlf
+0378   2155 0E 22       	ld c,SNDMSG
+0379   2157 F7          	rst 30h
+0380   2158             
+0381   2158 C9          	ret			; we done, exit
+0382   2159             
+0383   2159             
+0384   2159 57          stor:	ld d,a			; store for later our character
+0385   215A             
+0386   215A 3A 3A 28    	ld a,(sbufl)
+0387   215D FE 14       	cp inplen-7		; ***MAX LINE LENGTH IN chars less prompt ***
+0388   215F 28 17       	jr z,bfull		; but not if full
+0389   2161             
+0390   2161 21 3B 28    	ld hl,sbuf		; add to buffer
+0391   2164 4F          	ld c,a
+0392   2165 06 00       	ld b,0
+0393   2167 09          	add hl,bc
+0394   2168             
+0395   2168 7A          	ld a,d			; our character restored
+0396   2169 51          	ld d,c			; store buff length
+0397   216A             
+0398   216A             
+0399   216A 0E 17       	ld c,TXDATA		; put it oncreen
+0400   216C F7          	rst 30h
+0401   216D             
+0402   216D CD A3 21    	call toupper
+0403   2170 77          	ld (hl),a		; put in buffer
+0404   2171             
+0405   2171 14          	inc d			; +1 buffer length
+0406   2172 7A          	ld a,d
+0407   2173 32 3A 28    	ld (sbufl),a
+0408   2176 18 9D       	jr sbuflp
+0409   2178             
+0410   2178             bfull:
+0411   2178             
+0412   2178 0E 15       	ld c,BEEP		; beep = error!!
+0413   217A F7          	rst 30h
+0414   217B             
+0415   217B 18 98       	jr sbuflp
+0416   217D             
+0417   217D             ; -----------------------------------------------------------------------------
+0418   217D             ; SMON - dump serial input as hex bytes
+0419   217D             ; -----------------------------------------------------------------------------
+0420   217D             
+0421   217D             
+0422   217D 0E 18       banglp:	ld c,RXDATA		; wait for a byte input
+0423   217F F7          	rst 30h
+0424   2180             
+0425   2180 FE 51       	cp 051h			; ? "Q"
+0426   2182 28 18       	jr z,exsmon
+0427   2184             
+0428   2184             
+0429   2184 47          	ld b,a
+0430   2185 CD C2 24    	call mkprnt
+0431   2188             
+0432   2188 21 32 28    	ld hl,wordbuf
+0433   218B 77          	ld (hl),a		; store our character
+0434   218C 23          	inc hl
+0435   218D             
+0436   218D 78          	ld a,b
+0437   218E 0E 25       	ld c,BYTASC
+0438   2190 F7          	rst 30h
+0439   2191             
+0440   2191 3E 20       	ld a,32			; space
+0441   2193 77          	ld (hl),a
+0442   2194             
+0443   2194 2B          	dec hl
+0444   2195 2B          	dec hl
+0445   2196 2B          	dec hl
+0446   2197             
+0447   2197 0E 22       	ld c,SNDMSG
+0448   2199 F7          	rst 30h
+0449   219A             
+0450   219A             
+0451   219A 18 E1       	jr banglp
+0452   219C             
+0453   219C 21 7D 26    exsmon:	ld hl,crlf
+0454   219F 0E 22       	ld c,SNDMSG
+0455   21A1 F7          	rst 30h
+0456   21A2             
+0457   21A2 C9          	ret
+0458   21A3             
+0459   21A3             ; -----------------------------------------------------------------------------
+0460   21A3             ; TOUPPER convert text to uppercase; not a perect conversion
+0461   21A3             ; -----------------------------------------------------------------------------
+0462   21A3             
+0463   21A3             toupper:
+0464   21A3 FE 61       	cp 61h
+0465   21A5 38 02       	jr c, less
+0466   21A7 D6 20       	sub 20h
+0467   21A9             
+0468   21A9 C9          less:	ret
+0469   21AA             
+0470   21AA             ; -----------------------------------------------------------------------------
+0471   21AA             ; ramfind - locate block(s) of RAM and display info about them
+0472   21AA             ; -----------------------------------------------------------------------------
+0473   21AA             
+0474   21AA             ramfind:
+0475   21AA 21 00 00    	ld hl,0h			; setup start address
+0476   21AD 22 2E 28    	ld (ramtst),hl
+0477   21B0             
+0478   21B0 AF          	xor a				; 1 = we are already a block
+0479   21B1 32 37 28    	ld (ramflag),a
+0480   21B4             
+0481   21B4             
+0482   21B4 2A 2E 28    rloop:	ld hl,(ramtst)
+0483   21B7 CD 01 26    	call rtst			; does it work ?
+0484   21BA 28 15       	jr z,ok				; Z flag set = ram present, go on
+0485   21BC             
+0486   21BC 3A 37 28    	ld a,(ramflag)			; end of block found ?
+0487   21BF FE 01       	cp 1
+0488   21C1 28 02       	jr z, dumpp
+0489   21C3 18 1E       	jr cont
+0490   21C5             
+0491   21C5 CD CD 24    dumpp:	call dumpblk			; end of the block was reached
+0492   21C8             
+0493   21C8 AF          	xor a
+0494   21C9 32 37 28    	ld (ramflag),a
+0495   21CC             
+0496   21CC 2A 2E 28    	ld hl,(ramtst)			; carry on looking for next block
+0497   21CF 18 12       	jr cont
+0498   21D1             
+0499   21D1 3A 37 28    ok:	ld a,(ramflag)			; in a block ?
+0500   21D4 FE 01       	cp 1
+0501   21D6 28 08       	jR z,ok2
+0502   21D8             
+0503   21D8 22 2C 28    	ld (ramst),hl			; new block!!
+0504   21DB 3E 01       	ld a,1				; set flag
+0505   21DD 32 37 28    	ld (ramflag),a
+0506   21E0             
+0507   21E0 22 30 28    ok2:	ld (ramend),hl			; update location of end of ram
+0508   21E3             
+0509   21E3 01 00 01    cont:	ld bc,adinc			; next block
+0510   21E6 09          	add hl,bc
+0511   21E7 22 2E 28    	ld (ramtst),hl
+0512   21EA             
+0513   21EA 7C          	ld a,h
+0514   21EB B7          	or a
+0515   21EC 28 02       	jr z,rtdone			; if H=0 we are done (wrap round)
+0516   21EE             
+0517   21EE 18 C4       	jr rloop			; otherwise test next block
+0518   21F0             
+0519   21F0             rtdone:
+0520   21F0 3A 37 28    	ld a,(ramflag)
+0521   21F3 B7          	or a
+0522   21F4 28 03       	jr z, doneit
+0523   21F6             
+0524   21F6 CD CD 24    	call dumpblk			; all ram ?
+0525   21F9             
+0526   21F9 C9          doneit:	ret
+0527   21FA             
+0528   21FA             ; -----------------------------------------------------------------------------
+0529   21FA             ; HELP command
+0530   21FA             ; -----------------------------------------------------------------------------
+0531   21FA             
+0532   21FA 21 80 26    help:	ld hl,helpstr			; display message
+0533   21FD 0E 22       	ld c,SNDMSG
+0534   21FF F7          	rst 30h
+0535   2200 21 DA 26    	ld hl,helpst2			; display message part 2
+0536   2203 0E 22       	ld c,SNDMSG
+0537   2205 F7          	rst 30h
+0538   2206 C9          	ret
+0539   2207             
+0540   2207             ; -----------------------------------------------------------------------------
+0541   2207             ; EXMON command; returns to monitor
+0542   2207             ; -----------------------------------------------------------------------------
+0543   2207             
+0544   2207 0E 00       exmon:	ld c,MAIN
+0545   2209 F7          	rst 30h
+0546   220A C9          	ret
+0547   220B             
+0548   220B             ; no RET in reality - we never coming back!!
+0549   220B             
+0550   220B             ; -----------------------------------------------------------------------------
+0551   220B             ; INTEL command; RX Intel HEX file
+0552   220B             ; -----------------------------------------------------------------------------
+0553   220B             
+0554   220B             intel:
+0555   220B 21 62 27    	ld hl,intelhx			; message
+0556   220E 0E 22       	ld c,SNDMSG
+0557   2210 F7          	rst 30h
+0558   2211             
+0559   2211 0E 20       	ld c,INTELH
+0560   2213 F7          	rst 30h
+0561   2214             
+0562   2214 21 2C 27    	ld hl,success			; good load
+0563   2217 CA 1D 22    	jp z, imsg
+0564   221A 21 36 27    	ld hl,failure			; bad load
+0565   221D             
+0566   221D 0E 22       imsg:	ld c,SNDMSG
+0567   221F F7          	rst 30h
+0568   2220             
+0569   2220 C9          	ret
+0570   2221             
+0571   2221             ; -----------------------------------------------------------------------------
+0572   2221             ; LIST command; show all commands
+0573   2221             ; -----------------------------------------------------------------------------
+0574   2221             
+0575   2221 21 90 27    lst:	ld hl,cmds		; start off
+0576   2224 AF          	xor a
+0577   2225 32 39 28    	ld (llen),a
+0578   2228             
+0579   2228             
+0580   2228 7E          listl:	ld a,(hl)
+0581   2229 FE FF       	cp 0ffh			; done?
+0582   222B CA 60 22    	jp z, outs		; if done then return
+0583   222E             
+0584   222E 23          	inc hl
+0585   222F             
+0586   222F 4F          	ld c,a
+0587   2230 3A 39 28    	ld a,(llen)
+0588   2233 81          	add a,c
+0589   2234 3C          	inc a			; + space
+0590   2235 32 39 28    	ld (llen),a
+0591   2238             
+0592   2238 06 00       	ld b,0
+0593   223A 11 57 28    	ld de,ucmd
+0594   223D ED B0       	ldir			; copy commmand to buffer
+0595   223F             
+0596   223F 3E 20       	ld a,20h		; add space
+0597   2241 12          	ld (de),a
+0598   2242 13          	inc de
+0599   2243 AF          	xor a			; add null terminator
+0600   2244 12          	ld (de),a
+0601   2245             
+0602   2245 E5          	push hl
+0603   2246             
+0604   2246 21 57 28    	ld hl,ucmd		; show command
+0605   2249 0E 22       	ld c,SNDMSG
+0606   224B F7          	rst 30h
+0607   224C             
+0608   224C             
+0609   224C 3A 39 28    	ld a,(llen)
+0610   224F FE 4B       	cp 75
+0611   2251 38 07       	jr c, contn
+0612   2253             
+0613   2253 CD 60 22    	call outs
+0614   2256             
+0615   2256 AF          	xor a
+0616   2257 32 39 28    	ld (llen),a
+0617   225A             
+0618   225A             
+0619   225A E1          contn:	pop hl
+0620   225B             
+0621   225B 23          	inc hl			; skip the jp bytes
+0622   225C 23          	inc hl
+0623   225D             
+0624   225D C3 28 22    	jp listl
+0625   2260             
+0626   2260             
+0627   2260 21 7D 26    outs:	ld hl,crlf
+0628   2263 0E 22       	ld c,SNDMSG
+0629   2265 F7          	rst 30h
+0630   2266 C9          	ret
+0631   2267             
+0632   2267             ; -----------------------------------------------------------------------------
+0633   2267             ; BEEP command; make a beep sound on the TEC/SC
+0634   2267             ; -----------------------------------------------------------------------------
+0635   2267             
+0636   2267 0E 15       beep:	ld c,BEEP
+0637   2269 F7          	rst 30h
+0638   226A C9          	ret
+0639   226B             
+0640   226B             ; -----------------------------------------------------------------------------
+0641   226B             ; BELL command; make a beep sound on the serial console
+0642   226B             ; -----------------------------------------------------------------------------
+0643   226B             
+0644   226B 3E 07       bell:	ld a,07h		; 7 = bell
+0645   226D 0E 17       	ld c,TXDATA
+0646   226F F7          	rst 30h
+0647   2270 C9          	ret
+0648   2271             
+0649   2271             ; -----------------------------------------------------------------------------
+0650   2271             ; VER command; return version strings
+0651   2271             ; -----------------------------------------------------------------------------
+0652   2271             
+0653   2271             vers:
+0654   2271 21 33 26    	ld hl,tmonver		; display boot message
+0655   2274 0E 22       	ld c,SNDMSG
+0656   2276 F7          	rst 30h
+0657   2277             
+0658   2277 21 46 26    	ld hl,romver		; display ROM Version message
+0659   227A 0E 22       	ld c,SNDMSG
+0660   227C F7          	rst 30h
+0661   227D             
+0662   227D 0E 01       	ld c,VERS		; get monitor version
+0663   227F F7          	rst 30h
+0664   2280 0E 22       	ld c,SNDMSG		; display it
+0665   2282 F7          	rst 30h
+0666   2283             
+0667   2283 21 7D 26    	ld hl,crlf		; newline
+0668   2286 0E 22       	ld c,SNDMSG
+0669   2288 F7          	rst 30h
+0670   2289             
+0671   2289 C9          	ret
+0672   228A             
+0673   228A             ; -----------------------------------------------------------------------------
+0674   228A             ; HARDWARE command; return target hardware platform; TEC or SC
+0675   228A             ; -----------------------------------------------------------------------------
+0676   228A             
+0677   228A             hardware:
+0678   228A 21 56 26    	ld hl,plat		; display platform message
+0679   228D 0E 22       	ld c,SNDMSG
+0680   228F F7          	rst 30h
+0681   2290             
+0682   2290 0E 27       	ld c,PCBTYP		; get target platform => HL points to string
+0683   2292 F7          	rst 30h
+0684   2293 0E 22       	ld c,SNDMSG		; display it
+0685   2295 F7          	rst 30h
+0686   2296             
+0687   2296 0E 28       	ld c,PRNTSZ
+0688   2298 F7          	rst 30h
+0689   2299 2C 20 00    	.db ", ",0
+0690   229C             
+0691   229C 0E 29       	ld c,KBDTYP		; get keyboard type => HL points to string
+0692   229E F7          	rst 30h
+0693   229F 0E 22       	ld c,SNDMSG		; display it
+0694   22A1 F7          	rst 30h
+0695   22A2             
+0696   22A2 0E 28       	ld c,PRNTSZ
+0697   22A4 F7          	rst 30h
+0698   22A5 20 6B 65 79 	.db " keyboard",13,10,0
+0698   22A9 62 6F 61 72 
+0698   22AD 64 0D 0A 00 
+0699   22B1             
+0700   22B1 C9          	ret
+0701   22B2             
+0702   22B2             ; -----------------------------------------------------------------------------
+0703   22B2             ; CLS command; clear screen
+0704   22B2             ; -----------------------------------------------------------------------------
+0705   22B2             
+0706   22B2 21 26 26    cls:	ld hl,clrhome
+0707   22B5 0E 22       	ld c,SNDMSG
+0708   22B7 F7          	rst 30h
+0709   22B8 C9          	ret
+0710   22B9             
+0711   22B9             ; -----------------------------------------------------------------------------
+0712   22B9             ; SCBUG command; call SCMON built-in Serial Monitor
+0713   22B9             ; -----------------------------------------------------------------------------
+0714   22B9             
+0715   22B9 0E 2D       scmon:	ld c,SCBUG
+0716   22BB F7          	rst 30h
+0717   22BC C9          	ret
+0718   22BD             
+0719   22BD             ; ---------------------------------------------------------------------------
+0720   22BD             ; INC command; control automatc updating of CADDR
+0721   22BD             ; -----------------------------------------------------------------------------
+0722   22BD             
+0723   22BD             autoinc:
+0724   22BD 3A 72 28    	ld a,(uparaml)
+0725   22C0 B7          	or a
+0726   22C1 28 25       	jr z,shinc		; skip if no input
+0727   22C3             
+0728   22C3             
+0729   22C3 21 73 28    	ld hl,uparam
+0730   22C6 11 85 27    	ld de,onstr
+0731   22C9 06 03       	ld b,3
+0732   22CB CD AC 20    	call cmp
+0733   22CE 20 07       	jr nz,notone
+0734   22D0             
+0735   22D0             
+0736   22D0 3E 01       	ld a,1
+0737   22D2 32 38 28    	ld (autinc),a
+0738   22D5 18 11       	jr shinc
+0739   22D7             
+0740   22D7             
+0741   22D7             notone:
+0742   22D7 21 73 28    	ld hl,uparam
+0743   22DA 11 88 27    	ld de,offstr
+0744   22DD 06 04       	ld b,4
+0745   22DF CD AC 20    	call cmp
+0746   22E2 20 04       	jr nz,shinc
+0747   22E4             
+0748   22E4 AF          	xor a
+0749   22E5 32 38 28    	ld (autinc),a
+0750   22E8             
+0751   22E8             shinc:
+0752   22E8 21 3F 27    	ld hl,incstr		; message part 1
+0753   22EB 0E 22       	ld c,SNDMSG
+0754   22ED F7          	rst 30h
+0755   22EE             
+0756   22EE 21 57 27    	ld hl,incon
+0757   22F1             
+0758   22F1 3A 38 28    	ld a,(autinc)
+0759   22F4 FE 01       	cp 1
+0760   22F6 28 03       	jr z, outinc
+0761   22F8             
+0762   22F8 21 5C 27    	ld hl,incoff
+0763   22FB             
+0764   22FB 0E 22       outinc:	ld c,SNDMSG		; display the status
+0765   22FD F7          	rst 30h
+0766   22FE             
+0767   22FE C9          	ret
+0768   22FF             
+0769   22FF             ; -----------------------------------------------------------------------------
+0770   22FF             ; GO command; run somenthing; no parameter = go from caddr
+0771   22FF             ; -----------------------------------------------------------------------------
+0772   22FF             
+0773   22FF CD 48 20    go:	call pp
+0774   2302 30 03       	jr nc,exec
+0775   2304 2A DE 28    	ld hl,(caddr)
+0776   2307             
+0777   2307 E9          exec:	jp (hl)
+0778   2308 C9          	ret
+0779   2309             
+0780   2309             ; -----------------------------------------------------------------------------
+0781   2309             ; SETADDR command;update current edit address
+0782   2309             ; -----------------------------------------------------------------------------
+0783   2309             
+0784   2309             setaddr:
+0785   2309 CD 48 20    	call pp
+0786   230C 38 04       	jr c, shaddr		; exit if C set = bad/no input
+0787   230E 22 DE 28    	ld (caddr),hl
+0788   2311 C9          	ret
+0789   2312             
+0790   2312             shaddr:
+0791   2312 ED 5B DE 28 	ld de,(caddr)		; fill up prompt with current address
+0792   2316 21 32 28    	ld hl,wordbuf		; where to write it
+0793   2319 0E 24       	ld c,WRDASC
+0794   231B F7          	rst 30h
+0795   231C             
+0796   231C 21 32 28    	ld hl,wordbuf		; display addr
+0797   231F 0E 22       	ld c,SNDMSG
+0798   2321 F7          	rst 30h
+0799   2322             
+0800   2322 21 7D 26    	ld hl,crlf		; newline
+0801   2325 0E 22       	ld c,SNDMSG
+0802   2327 F7          	rst 30h
+0803   2328             
+0804   2328 C9          	ret
+0805   2329             
+0806   2329             ; -----------------------------------------------------------------------------
+0807   2329             ; DISASSEMBLE command; disassemble the Z-80 instruction at current address
+0808   2329             ; -----------------------------------------------------------------------------
+0809   2329             
+0810   2329             disassemble:
+0811   2329 CD 48 20    	call pp
+0812   232C 38 03       	jr c,dinp
+0813   232E 22 DE 28    	ld (caddr),hl
+0814   2331             
+0815   2331 2A DE 28    dinp:	ld hl,(caddr)
+0816   2334 22 1A 29    	ld (PERFROM),hl		; PERFROM is maintained by Jim's disasembler
+0817   2337             				; always points to start of next instruction to
+0818   2337             				; be disassembled
+0819   2337             
+0820   2337 06 10       	ld b,16			; loop 16 instructions
+0821   2339             
+0822   2339             
+0823   2339 C5          disblk:	push bc
+0824   233A             
+0825   233A CD 1C 29    	call DIS_START		; do it
+0826   233D CD 4C 23    	call disout		; and display the result
+0827   2340             
+0828   2340 C1          	pop bc
+0829   2341             
+0830   2341 10 F6       	djnz disblk
+0831   2343             
+0832   2343 2A 1A 29    	ld hl,(PERFROM)		; do we update CADDR?
+0833   2346             
+0834   2346 CD 68 23    	call pauser
+0835   2349 28 E6       	jr z,dinp
+0836   234B             
+0837   234B C9          	ret
+0838   234C             
+0839   234C             ; -----------------------------------------------------------------------------
+0840   234C             ; DISOUT - displays the disassembler's output string
+0841   234C             ; -----------------------------------------------------------------------------
+0842   234C             
+0843   234C             
+0844   234C 2A 17 29    disout:	ld hl,(DISEND)		; null terminate our string
+0845   234F 36 00       	ld (hl),0
+0846   2351             
+0847   2351 21 F3 28    	ld hl,DISFROM		; show output buffer line 1
+0848   2354 0E 22       	ld c,SNDMSG
+0849   2356 F7          	rst 30h
+0850   2357             
+0851   2357 21 7D 26    	ld hl,crlf		; and tidy up
+0852   235A 0E 22       	ld c,SNDMSG
+0853   235C F7          	rst 30h
+0854   235D             
+0855   235D C9          	ret
+0856   235E             
+0857   235E             ; -----------------------------------------------------------------------------
+0858   235E             ; incchk - updates CURRENT ADDRESS if mode turned on
+0859   235E             ; HL = new address to be used if inc mode is selected
+0860   235E             ; -----------------------------------------------------------------------------
+0861   235E             
+0862   235E 3A 38 28    incchk:	ld a,(autinc)		; update caddr?
+0863   2361 FE 01       	cp 1
+0864   2363 C0          	ret nz
+0865   2364             
+0866   2364 22 DE 28    	ld (caddr),hl
+0867   2367             
+0868   2367 C9          	ret
+0869   2368             
+0870   2368             ; -----------------------------------------------------------------------------
+0871   2368             ; Pause-er. Space to continue, Q to quit
+0872   2368             ; -----------------------------------------------------------------------------
+0873   2368             
+0874   2368             pauser:
+0875   2368 CD 5E 23    	call incchk			; update address?
+0876   236B             
+0877   236B 0E 18       	ld c,RXDATA
+0878   236D F7          	rst 30h
+0879   236E             
+0880   236E CD A3 21    	call toupper
+0881   2371             
+0882   2371 FE 20       	cp 20h				; space
+0883   2373 C8          	ret z				; C flag set = continue
+0884   2374             
+0885   2374 FE 51       	cp 51h
+0886   2376 20 F0       	jr nz,pauser
+0887   2378             
+0888   2378 FE 20       	cp 20h				; clear zero flag; fail on purpose
+0889   237A             
+0890   237A C9          	ret
+0891   237B             
+0892   237B             ; -----------------------------------------------------------------------------
+0893   237B             ; DATAINP command;input data interactively from the user
+0894   237B             ; -----------------------------------------------------------------------------
+0895   237B             
+0896   237B             datainp:
+0897   237B CD 48 20    	call pp
+0898   237E 38 03       	jr c,cinp
+0899   2380 22 DE 28    	ld (caddr),hl
+0900   2383             
+0901   2383             
+0902   2383 ED 5B DE 28 cinp:	ld de,(caddr)		; fill up prompt with current address
+0903   2387 21 E8 28    	ld hl,inprmpt		; where to write it
+0904   238A 0E 24       	ld c,WRDASC
+0905   238C F7          	rst 30h
+0906   238D             
+0907   238D 23          	inc hl
+0908   238E             
+0909   238E ED 5B DE 28 	ld de,(caddr)
+0910   2392 1A          	ld a,(de)
+0911   2393 0E 25       	ld c,BYTASC		; and put into string
+0912   2395 F7          	rst 30h
+0913   2396             
+0914   2396 21 E8 28    	ld hl,inprmpt		; display main prompt for data entry mode
+0915   2399 0E 22       	ld c,SNDMSG
+0916   239B F7          	rst 30h
+0917   239C             
+0918   239C CD 0E 21    	call usin		; get the user's input
+0919   239F             
+0920   239F 3A 3A 28    	ld a,(sbufl)
+0921   23A2             
+0922   23A2 B7          	or a
+0923   23A3 28 21       	jr z, ent		; 0 chars == pressed enter
+0924   23A5             
+0925   23A5 FE 01       	cp 1			; 1 char ?
+0926   23A7 28 0A       	jr z, qut
+0927   23A9             
+0928   23A9 FE 02       	cp 2			; 2 chars exactly ?
+0929   23AB 28 3F       	jr z, inpb
+0930   23AD             
+0931   23AD FE 03       	cp 3			; 3 chars, could be dis command?
+0932   23AF 28 1E       	jr z, isdis
+0933   23B1             
+0934   23B1 18 D0       	jr cinp			; invalid entry : do nothing
+0935   23B3             
+0936   23B3             
+0937   23B3 3A 3B 28    qut:	ld a,(sbuf)
+0938   23B6 FE 51       	cp 51h 			; "Q" = QUIT entry mode
+0939   23B8 C8          	ret z			; bail out of data entry mode
+0940   23B9             
+0941   23B9 FE 2D       	cp 2dh			; "-" = decrement CADDR
+0942   23BB 20 C6       	jr nz,cinp
+0943   23BD             
+0944   23BD 2A DE 28    	ld hl,(caddr)
+0945   23C0 2B          	dec hl
+0946   23C1 22 DE 28    	ld (caddr),hl
+0947   23C4             
+0948   23C4 18 BD       	jr cinp			; if not a valid char: do nothing
+0949   23C6             
+0950   23C6             ; assuming enter here; sbuf and sbufl = 00
+0951   23C6             
+0952   23C6 2A DE 28    ent:	ld hl,(caddr)		; pressed ENTER so inc. caddr
+0953   23C9 23          	inc hl
+0954   23CA 22 DE 28    	ld (caddr),hl
+0955   23CD             
+0956   23CD 18 B4       	jr cinp
+0957   23CF             
+0958   23CF 21 8C 27    isdis:	ld hl,disstr		; is it "DIS" ?
+0959   23D2 11 3B 28    	ld de,sbuf
+0960   23D5 06 04       	ld b,4
+0961   23D7 CD AC 20    	call cmp
+0962   23DA             
+0963   23DA 20 A7       	jr nz,cinp		; nope
+0964   23DC             
+0965   23DC             
+0966   23DC 2A DE 28    	ld hl,(caddr)		; yes, so disassemble that instruction
+0967   23DF 22 1A 29    	ld (PERFROM),hl
+0968   23E2 06 01       	ld b,1
+0969   23E4             
+0970   23E4 CD 1C 29    	call DIS_START
+0971   23E7 CD 4C 23    	call disout
+0972   23EA             
+0973   23EA 18 97       	jr cinp
+0974   23EC             
+0975   23EC             ; if here we have a byte to enter
+0976   23EC             
+0977   23EC 3A 3C 28    inpb:	ld a,(sbuf+1)
+0978   23EF 0E 19       	ld c,ASCHEX
+0979   23F1 F7          	rst 30h
+0980   23F2             
+0981   23F2 47          	ld b,a
+0982   23F3             
+0983   23F3 3A 3B 28    	ld a,(sbuf)
+0984   23F6 F7          	rst 30h
+0985   23F7 0F          	rrca
+0986   23F8 0F          	rrca
+0987   23F9 0F          	rrca
+0988   23FA 0F          	rrca
+0989   23FB 80          	add a,b
+0990   23FC             
+0991   23FC 2A DE 28    	ld hl,(caddr)
+0992   23FF 77          	ld (hl),a
+0993   2400 23          	inc hl
+0994   2401 22 DE 28    	ld (caddr),hl
+0995   2404             
+0996   2404 C3 83 23    	jp cinp
+0997   2407             
+0998   2407             ; -----------------------------------------------------------------------------
+0999   2407             ; SEGTEST command - exercises the 7-seg displays and keyboard
+1000   2407             ; -----------------------------------------------------------------------------
+1001   2407             
+1002   2407             segtest:
+1003   2407 0E 04       	ld c,CLRBUF
+1004   2409 F7          	rst 30h
+1005   240A             
+1006   240A 2A DE 28    	ld hl,(caddr)
+1007   240D 0E 02       	ld c,DISADD
+1008   240F F7          	rst 30h
+1009   2410             
+1010   2410 7E          	ld a,(hl)
+1011   2411 0E 03       	ld c,DISBYT
+1012   2413 F7          	rst 30h
+1013   2414             
+1014   2414 0E 09       	ld c,SKEYIN
+1015   2416 F7          	rst 30h
+1016   2417             
+1017   2417 B7          	or a				; pressed 0 ?
+1018   2418 C8          	ret z
+1019   2419             
+1020   2419 FE 12       	cp KEYINC
+1021   241B 20 09       	jr nz, tstdec
+1022   241D             
+1023   241D 2A DE 28    	ld hl,(caddr)
+1024   2420 23          	inc hl
+1025   2421 22 DE 28    	ld (caddr),hl
+1026   2424 18 0B       	jr segd
+1027   2426             
+1028   2426 FE 13       tstdec:	cp KEYDEC
+1029   2428 20 07       	jr nz,segd
+1030   242A             
+1031   242A 2A DE 28    	ld hl,(caddr)
+1032   242D 2B          	dec hl
+1033   242E 22 DE 28    	ld (caddr),hl
+1034   2431             
+1035   2431 0E 0A       segd:	ld c,SKEYRL
+1036   2433 F7          	rst 30h
+1037   2434             
+1038   2434 18 D1       	jr segtest
+1039   2436             
+1040   2436             
+1041   2436             ; -----------------------------------------------------------------------------
+1042   2436             ; DOHALT - Halt the CPU
+1043   2436             ; -----------------------------------------------------------------------------
+1044   2436             
+1045   2436 76          dohalt:	halt
+1046   2437 C9          	ret
+1047   2438             
+1048   2438             ; -----------------------------------------------------------------------------
+1049   2438             ; KEYBTEST - test the keyboard -> 7seg
+1050   2438             ; -----------------------------------------------------------------------------
+1051   2438             
+1052   2438             keybtst:
+1053   2438 0E 04       	ld c,CLRBUF
+1054   243A F7          	rst 30h
+1055   243B             
+1056   243B 0E 1F       	ld c,SCANKEY
+1057   243D F7          	rst 30h
+1058   243E             
+1059   243E CB 6F       	bit 5,a
+1060   2440 28 F6       	jr z,keybtst
+1061   2442             
+1062   2442 47          	ld b,a				; backup A
+1063   2443 E6 1F       	and 01fh			; mask high bits
+1064   2445             
+1065   2445 0E 03       	ld c,DISBYT
+1066   2447 F7          	rst 30h
+1067   2448             
+1068   2448 CB 70       	bit 6,b				; shift ?
+1069   244A 28 0A       	jr z,cn
+1070   244C             
+1071   244C 3E 66       	ld a,066h			; TEC 7-seg codes
+1072   244E 32 35 3F    	ld (DISBUF+4),a
+1073   2451 3E A7       	ld a,0a7h
+1074   2453 32 36 3F    	ld (DISBUF+5),a
+1075   2456             
+1076   2456             cn:
+1077   2456 0E 05       	ld c,SCAND			; show something
+1078   2458 F7          	rst 30h
+1079   2459             
+1080   2459 18 DD       	jr keybtst
+1081   245B             
+1082   245B             
+1083   245B             ; -----------------------------------------------------------------------------
+1084   245B             ; DUMP command; dump a memory block; no parameter = dump from caddr
+1085   245B             ; -----------------------------------------------------------------------------
+1086   245B             
+1087   245B CD 48 20    dump:	call pp
+1088   245E 38 06       	jr c,usecad
+1089   2460             
+1090   2460 7D          	ld a,l
+1091   2461 E6 F0       	and 0f0h		; align to 16 byte boundary
+1092   2463 6F          	ld l,a
+1093   2464 18 08       	jr dval
+1094   2466             
+1095   2466             
+1096   2466 2A DE 28    usecad:	ld hl,(caddr)
+1097   2469 5D          	ld e,l
+1098   246A 7D          	ld a,l
+1099   246B E6 F0       	and 0f0h		; align to 16 byte boundary
+1100   246D 6F          	ld l,a
+1101   246E             
+1102   246E EB          dval:	ex de,hl		; really, load DE from HL
+1103   246F             
+1104   246F 06 10       	ld b,16			; 16 rows, outer loop
+1105   2471             
+1106   2471 C5          odlp:	push bc
+1107   2472             
+1108   2472 06 10       	ld b,16			; 16 bytes, inner loop (one row)
+1109   2474 21 8E 28    	ld hl,dispbuf
+1110   2477             
+1111   2477 7A          	ld a,d			; address
+1112   2478 0E 25       	ld c,BYTASC
+1113   247A F7          	rst 30h
+1114   247B 7B          	ld a,e
+1115   247C 0E 25       	ld c,BYTASC
+1116   247E F7          	rst 30h
+1117   247F 3E 20       	ld a,20h
+1118   2481 77          	ld (hl),a
+1119   2482 23          	inc hl
+1120   2483 3E 20       	ld a,20h
+1121   2485 77          	ld (hl),a
+1122   2486 23          	inc hl
+1123   2487             
+1124   2487             
+1125   2487 1A          dlp:	ld a,(de)		; data
+1126   2488 13          	inc de
+1127   2489             
+1128   2489 0E 25       	ld c,BYTASC
+1129   248B F7          	rst 30h
+1130   248C             
+1131   248C 3E 20       	ld a,20h
+1132   248E 77          	ld (hl),a
+1133   248F 23          	inc hl
+1134   2490             
+1135   2490 10 F5       	djnz dlp
+1136   2492             
+1137   2492 3E 20       	ld a,20h
+1138   2494 77          	ld (hl),a
+1139   2495 23          	inc hl
+1140   2496 3E 20       	ld a,20h
+1141   2498 77          	ld (hl),a
+1142   2499 23          	inc hl
+1143   249A             
+1144   249A 06 10       	ld b,16			; back to start of block
+1145   249C 1B          decde:	dec de
+1146   249D 10 FD       	djnz decde
+1147   249F             
+1148   249F 06 10       	ld b,16
+1149   24A1             
+1150   24A1 1A          asl:	ld a,(de)		; ascii dump
+1151   24A2 13          	inc de
+1152   24A3             
+1153   24A3 CD C2 24    	call mkprnt		; clean up nonprintables
+1154   24A6             
+1155   24A6 77          	ld (hl),a
+1156   24A7 23          	inc hl
+1157   24A8             
+1158   24A8 10 F7       	djnz asl
+1159   24AA             
+1160   24AA AF          	xor a			; null terminate it
+1161   24AB 77          	ld (hl),a
+1162   24AC             
+1163   24AC 21 8E 28    	ld hl,dispbuf		; output the buffer (one line)
+1164   24AF 0E 22       	ld c,SNDMSG
+1165   24B1 F7          	rst 30h
+1166   24B2             
+1167   24B2 21 7D 26    	ld hl,crlf
+1168   24B5 0E 22       	ld c,SNDMSG
+1169   24B7 F7          	rst 30h
+1170   24B8             
+1171   24B8 C1          	pop bc
+1172   24B9             
+1173   24B9 10 B6       	djnz odlp
+1174   24BB             
+1175   24BB EB          	ex de,hl		; load hl with the pointer
+1176   24BC             
+1177   24BC CD 68 23    	call pauser
+1178   24BF 28 A5       	jr Z,usecad
+1179   24C1             
+1180   24C1 C9          	ret
+1181   24C2             ; -----------------------------------------------------------------------------
+1182   24C2             ; MKPRNT - make an ASCII value printable
+1183   24C2             ;
+1184   24C2             ; IN: A = byte to fix up
+1185   24C2             ; OUT: A = fixed up byte
+1186   24C2             ;
+1187   24C2             ; -----------------------------------------------------------------------------
+1188   24C2             
+1189   24C2 FE 7F       mkprnt:	cp 7fh			; > 7fh = unprintable
+1190   24C4 30 04       	jr nc,fix
+1191   24C6 FE 20       	cp 32			; < 32 = unprintable
+1192   24C8 30 02       	jr nc,yok
+1193   24CA             
+1194   24CA 3E 2E       fix:	ld a,2eh		; swap in a '.'
+1195   24CC             
+1196   24CC C9          yok:	ret
+1197   24CD             
+1198   24CD             ; -----------------------------------------------------------------------------
+1199   24CD             ; dumpblk - display info abbout the RAM block found
+1200   24CD             ; -----------------------------------------------------------------------------
+1201   24CD             
+1202   24CD             dumpblk:
+1203   24CD 21 6A 26    	ld hl,rammsg
+1204   24D0 0E 22       	ld c,SNDMSG
+1205   24D2 F7          	rst 30h
+1206   24D3             
+1207   24D3 ED 5B 2C 28 	ld de,(ramst)			; dump values to screen
+1208   24D7 21 32 28    	ld hl,wordbuf
+1209   24DA 0E 24       	ld c,WRDASC
+1210   24DC F7          	rst 30h
+1211   24DD 21 32 28    	ld hl,wordbuf
+1212   24E0 0E 22       	ld c,SNDMSG
+1213   24E2 F7          	rst 30h
+1214   24E3             
+1215   24E3 0E 28       	ld c,PRNTSZ
+1216   24E5 F7          	rst 30h
+1217   24E6 68 20 61 6E 	.db "h and ",0
+1217   24EA 64 20 00 
+1218   24ED             
+1219   24ED ED 5B 30 28 	ld de,(ramend)
+1220   24F1 21 32 28    	ld hl,wordbuf
+1221   24F4 1D          	dec e				; adjust to xxffh
+1222   24F5 0E 24       	ld c,WRDASC
+1223   24F7 F7          	rst 30h
+1224   24F8             
+1225   24F8 21 32 28    	ld hl,wordbuf
+1226   24FB 0E 22       	ld c,SNDMSG
+1227   24FD F7          	rst 30h
+1228   24FE             
+1229   24FE 0E 28       	ld c,PRNTSZ
+1230   2500 F7          	rst 30h
+1231   2501 68 20 2D 20 	.db "h - ",0
+1231   2505 00 
+1232   2506             
+1233   2506             
+1234   2506             ; work out how many bytes
+1235   2506 2A 30 28    	ld hl,(ramend)
+1236   2509 01 00 01    	ld bc,adinc
+1237   250C 09          	add hl,bc
+1238   250D             
+1239   250D ED 5B 2C 28 	ld de,(ramst)
+1240   2511 B7          	or a
+1241   2512 ED 52       	sbc hl,de
+1242   2514             
+1243   2514 CD 24 25    	call decimal			; HL -> output
+1244   2517             
+1245   2517 0E 28       	ld c,PRNTSZ
+1246   2519 F7          	rst 30h
+1247   251A 20 62 79 74 	.db " bytes",13,10,0
+1247   251E 65 73 0D 0A 
+1247   2522 00 
+1248   2523             
+1249   2523 C9          	ret
+1250   2524             
+1251   2524             ; -----------------------------------------------------------------------------
+1252   2524             ; DECIMAL - HL to decimal, sent out the serial one char at a time
+1253   2524             ; -----------------------------------------------------------------------------
+1254   2524             
+1255   2524             decimal:
+1256   2524 1E 01       	ld e,1				; 1 = don't print a digit
+1257   2526             
+1258   2526 01 F0 D8    	ld	bc,-10000
+1259   2529 CD 3F 25    	call	Num1
+1260   252C 01 18 FC    	ld	bc,-1000
+1261   252F CD 3F 25    	call	Num1
+1262   2532 01 9C FF    	ld	bc,-100
+1263   2535 CD 3F 25    	call	Num1
+1264   2538 0E F6       	ld	c,-10
+1265   253A CD 3F 25    	call	Num1
+1266   253D 0E FF       	ld	c,-1
+1267   253F             
+1268   253F 3E 2F       Num1:	ld	a,'0'-1
+1269   2541             
+1270   2541 3C          Num2:	inc	a
+1271   2542 09          	add	hl,bc
+1272   2543 38 FC       	jr	c,Num2
+1273   2545 ED 42       	sbc	hl,bc
+1274   2547             
+1275   2547 57          	ld d,a				; backup a
+1276   2548 7B          	ld a,e
+1277   2549 B7          	or a
+1278   254A 7A          	ld a,d				; restore it in case
+1279   254B 28 05       	jr z,prout			; if E flag 0, all ok, print any value
+1280   254D             
+1281   254D FE 30       	cp '0'				; no test if <>0
+1282   254F C8          	ret z				; if a 0, do nothing (leading zero)
+1283   2550             
+1284   2550 1E 00       	ld e,0				; clear flag & print it
+1285   2552             
+1286   2552 0E 17       prout:	ld c,TXDATA
+1287   2554 F7          	rst 30h
+1288   2555             
+1289   2555 C9          	ret
+1290   2556             
+1291   2556             ; -----------------------------------------------------------------------------
+1292   2556             ; REGS - Dump out the registers (for debugging)
+1293   2556             ; -----------------------------------------------------------------------------
+1294   2556             
+1295   2556 F5          regs:	push af
+1296   2557 C5          	push bc
+1297   2558 D5          	push de
+1298   2559 E5          	push hl
+1299   255A DD E5       	push ix
+1300   255C FD E5       	push iy
+1301   255E             
+1302   255E F5          	push af			; junk; moves sP down for following push
+1303   255F 21 00 00    	ld hl,0			; hl now points to current stack bottom
+1304   2562 39          	add hl,sp
+1305   2563 F1          	pop af			; clear sp
+1306   2564             
+1307   2564 54          	ld d,h
+1308   2565 5D          	ld e,l
+1309   2566             
+1310   2566 01 10 00    	ld bc,0010h		; currstack + ret addr = original (push + 2 bytes)
+1311   2569 09          	add hl,bc
+1312   256A             
+1313   256A E5          	push hl			; save original SP
+1314   256B             
+1315   256B             
+1316   256B             ; de = stack bottom
+1317   256B             ; hl = original sp before CALL
+1318   256B             
+1319   256B             
+1320   256B 0E 28       	ld c,PRNTSZ
+1321   256D F7          	rst 30h
+1322   256E 53 50 20 20 	.db "SP   AF   BC   DE   HL   IX   IY   PC",13,10,0
+1322   2572 20 41 46 20 
+1322   2576 20 20 42 43 
+1322   257A 20 20 20 44 
+1322   257E 45 20 20 20 
+1322   2582 48 4C 20 20 
+1322   2586 20 49 58 20 
+1322   258A 20 20 49 59 
+1322   258E 20 20 20 50 
+1322   2592 43 0D 0A 00 
+1323   2596             
+1324   2596             
+1325   2596 06 08       	ld b,8			; 8 register pairs to display
+1326   2598             
+1327   2598             
+1328   2598             regloop:
+1329   2598 C5          	push bc
+1330   2599 D5          	push de
+1331   259A             
+1332   259A 62          	ld h,d
+1333   259B 6B          	ld l,e
+1334   259C             
+1335   259C 5E          	ld e,(hl)
+1336   259D 23          	inc hl
+1337   259E 56          	ld d,(hl)
+1338   259F             
+1339   259F 21 32 28    	ld hl,wordbuf
+1340   25A2 0E 24       	ld c,WRDASC
+1341   25A4 F7          	rst 30h
+1342   25A5             
+1343   25A5 21 32 28    	ld hl,wordbuf
+1344   25A8 0E 22       	ld c,SNDMSG
+1345   25AA F7          	rst 30h
+1346   25AB             
+1347   25AB             
+1348   25AB 0E 28       	ld c,PRNTSZ
+1349   25AD F7          	rst 30h
+1350   25AE 20 00       	.db	" ",0
+1351   25B0             
+1352   25B0 D1          	pop de
+1353   25B1 C1          	pop bc
+1354   25B2             
+1355   25B2 13          	inc de
+1356   25B3 13          	inc de
+1357   25B4             
+1358   25B4 10 E2       	djnz regloop
+1359   25B6             
+1360   25B6             
+1361   25B6 21 7D 26    	ld hl,crlf
+1362   25B9 0E 22       	ld c,SNDMSG
+1363   25BB F7          	rst 30h
+1364   25BC             
+1365   25BC             
+1366   25BC             
+1367   25BC             ; ---
+1368   25BC             
+1369   25BC E1          	pop hl			; junk; is really SP
+1370   25BD FD E1       	pop iy
+1371   25BF DD E1       	pop ix
+1372   25C1 E1          	pop hl
+1373   25C2 D1          	pop de
+1374   25C3 C1          	pop bc
+1375   25C4 F1          	pop af
+1376   25C5             
+1377   25C5 C9          	ret
+1378   25C6             
+1379   25C6             
+1380   25C6             
+1381   25C6             ; -----------------------------------------------------------------------------
+1382   25C6             ; RTST   checks a byte of memory to see if it can store and return values
+1383   25C6             ;
+1384   25C6             ; In:
+1385   25C6             ; HL = memory location to check
+1386   25C6             ;
+1387   25C6             ; out:
+1388   25C6             ; Z flag set if ram present
+1389   25C6             ; DE trashed
+1390   25C6             ; -----------------------------------------------------------------------------
+1391   25C6             
+1392   25C6             ; test code cant be at xx00h or it'll be overwriten by the tester
+1393   2601             	.ORG (($ + 0FFH) & 0FF00H) +1	; align to next 256 byte boundary +1 byte
+1394   2601             
+1395   2601             rtst:
+1396   2601 F3          	di			; disable interrupts; avoid memory corruption
+1397   2602             
+1398   2602 5E          	ld e,(hl)		; backup original value
+1399   2603             
+1400   2603 3E AA       	ld a,0aah		; test 1 store aa
+1401   2605 77          	ld (hl),a
+1402   2606 00          	nop
+1403   2607 56          	ld d,(hl)
+1404   2608 BA          	cp d
+1405   2609 20 18       	jr nz, noram
+1406   260B             
+1407   260B 3E 55       	ld a,055h		; test 2 store 55
+1408   260D 77          	ld (hl),a
+1409   260E 00          	nop
+1410   260F 56          	ld d,(hl)
+1411   2610 BA          	cp d
+1412   2611 20 10       	jr nz, noram
+1413   2613             
+1414   2613 3E 00       	ld a,00h		; test 3 store 00
+1415   2615 77          	ld (hl),a
+1416   2616 00          	nop
+1417   2617 56          	ld d,(hl)
+1418   2618 BA          	cp d
+1419   2619 20 08       	jr nz, noram
+1420   261B             
+1421   261B 3E FF       	ld a,0ffh		; test 4 store ff
+1422   261D 77          	ld (hl),a
+1423   261E 00          	nop
+1424   261F 56          	ld d,(hl)
+1425   2620 BA          	cp d
+1426   2621 20 00       	jr nz, noram		; Z flag set (=1), == ram present
+1427   2623             
+1428   2623             
+1429   2623 73          noram:	ld (hl),e		; restore value (even if failed teset!)
+1430   2624             				; if failed Z flag is reset (=0)
+1431   2624 FB          	ei			; end test enable interrupts
+1432   2625 C9          	ret
+1433   2626             
+1434   2626             ; -----------------------------------------------------------------------------
+1435   2626             ; Constants, Strings and Variables
+1436   2626             ; -----------------------------------------------------------------------------
+1437   2626             
+1438   2626             
+1439   2626             ; constants
+1440   2626             
+1441   2626             adinc	.equ 0100h		; ram check block jump size
+1442   2626             
+1443   2626             inplen	.equ 27			; max user input line length (add 7 for prompt)
+1444   2626             
+1445   2626             
+1446   2626             ; Strings
+1447   2626             
+1448   2626 1B 5B 48 1B clrhome	.db	27,"[H",27,"[2J",0
+1448   262A 5B 32 4A 00 
+1449   262E             
+1450   262E 1B 5B 31 44 bkspc	.db	27,"[1D",0
+1450   2632 00 
+1451   2633             
+1452   2633 54 4D 4F 4E tmonver	.db	"TMON Version 1.0",13,10,0
+1452   2637 20 56 65 72 
+1452   263B 73 69 6F 6E 
+1452   263F 20 31 2E 30 
+1452   2643 0D 0A 00 
+1453   2646 53 43 4D 4F romver	.db	"SCMON version: ",0
+1453   264A 4E 20 76 65 
+1453   264E 72 73 69 6F 
+1453   2652 6E 3A 20 00 
+1454   2656 43 6F 6D 70 plat	.db	"Compiled Platform: ",0
+1454   265A 69 6C 65 64 
+1454   265E 20 50 6C 61 
+1454   2662 74 66 6F 72 
+1454   2666 6D 3A 20 00 
+1455   266A             
+1456   266A 52 41 4D 20 rammsg	.db	"RAM Found between ",0
+1456   266E 46 6F 75 6E 
+1456   2672 64 20 62 65 
+1456   2676 74 77 65 65 
+1456   267A 6E 20 00 
+1457   267D             
+1458   267D 0D 0A 00    crlf	.db	13,10,0
+1459   2680             
+1460   2680 54 68 69 73 helpstr	.db	"This is the HELP page",13,10
+1460   2684 20 69 73 20 
+1460   2688 74 68 65 20 
+1460   268C 48 45 4C 50 
+1460   2690 20 70 61 67 
+1460   2694 65 0D 0A 
+1461   2697 0D 0A       	.db	13,10
+1462   2699 54 79 70 65 	.db	"Type a command and press Enter",13,10
+1462   269D 20 61 20 63 
+1462   26A1 6F 6D 6D 61 
+1462   26A5 6E 64 20 61 
+1462   26A9 6E 64 20 70 
+1462   26AD 72 65 73 73 
+1462   26B1 20 45 6E 74 
+1462   26B5 65 72 0D 0A 
+1463   26B9 54 79 70 65 	.db	"Type EXIT to quit to monitor",13,10
+1463   26BD 20 45 58 49 
+1463   26C1 54 20 74 6F 
+1463   26C5 20 71 75 69 
+1463   26C9 74 20 74 6F 
+1463   26CD 20 6D 6F 6E 
+1463   26D1 69 74 6F 72 
+1463   26D5 0D 0A 
+1464   26D7 0D 0A 00    	.db	13,10,0
+1465   26DA 54 79 70 65 helpst2	.db	"Type HELP to display this information",13,10
+1465   26DE 20 48 45 4C 
+1465   26E2 50 20 74 6F 
+1465   26E6 20 64 69 73 
+1465   26EA 70 6C 61 79 
+1465   26EE 20 74 68 69 
+1465   26F2 73 20 69 6E 
+1465   26F6 66 6F 72 6D 
+1465   26FA 61 74 69 6F 
+1465   26FE 6E 0D 0A 
+1466   2701 54 79 70 65 	.db	"Type LIST or ? to see a list of commands",13,10,0
+1466   2705 20 4C 49 53 
+1466   2709 54 20 6F 72 
+1466   270D 20 3F 20 74 
+1466   2711 6F 20 73 65 
+1466   2715 65 20 61 20 
+1466   2719 6C 69 73 74 
+1466   271D 20 6F 66 20 
+1466   2721 63 6F 6D 6D 
+1466   2725 61 6E 64 73 
+1466   2729 0D 0A 00 
+1467   272C             
+1468   272C 53 75 63 63 success	.db	"Success",13,10,0
+1468   2730 65 73 73 0D 
+1468   2734 0A 00 
+1469   2736 46 61 69 6C failure	.db	"Failed",13,10,0
+1469   273A 65 64 0D 0A 
+1469   273E 00 
+1470   273F             
+1471   273F 41 75 74 6F incstr	.db	"Auto-Increment mode is ",0
+1471   2743 2D 49 6E 63 
+1471   2747 72 65 6D 65 
+1471   274B 6E 74 20 6D 
+1471   274F 6F 64 65 20 
+1471   2753 69 73 20 00 
+1472   2757 6F 6E 0D 0A incon	.db	"on",13,10,0
+1472   275B 00 
+1473   275C 6F 66 66 0D incoff	.db	"off",13,10,0
+1473   2760 0A 00 
+1474   2762             
+1475   2762 52 65 61 64 intelhx	.db 	"Ready to receive Intel HEX File...",0
+1475   2766 79 20 74 6F 
+1475   276A 20 72 65 63 
+1475   276E 65 69 76 65 
+1475   2772 20 49 6E 74 
+1475   2776 65 6C 20 48 
+1475   277A 45 58 20 46 
+1475   277E 69 6C 65 2E 
+1475   2782 2E 2E 00 
+1476   2785             
+1477   2785 4F 4E 00    onstr	.db	"ON",0
+1478   2788 4F 46 46 00 offstr	.db	"OFF",0
+1479   278C             
+1480   278C 44 49 53 00 disstr	.db	"DIS",0
+1481   2790             
+1482   2790             
+1483   2790             ; format of cmds table : length in bytes of command, command, jmp address.
+1484   2790             ; terminates with 0xffh
+1485   2790             
+1486   2790             
+1487   2790 04 48 45 4C cmds	.db	4,"HELP"
+1487   2794 50 
+1488   2795 FA 21       	.dw	help
+1489   2797 01 3F       	.db	1,"?"
+1490   2799 21 22       	.dw	lst
+1491   279B 04 45 58 49 	.db	4,"EXIT"
+1491   279F 54 
+1492   27A0 07 22       	.dw	exmon
+1493   27A2 05 49 4E 54 	.db	5,"INTEL"
+1493   27A6 45 4C 
+1494   27A8 0B 22       	.dw	intel
+1495   27AA 04 42 45 45 	.db	4,"BEEP"
+1495   27AE 50 
+1496   27AF 67 22       	.dw	beep
+1497   27B1 04 42 45 4C 	.db	4,"BELL"
+1497   27B5 4C 
+1498   27B6 6B 22       	.dw	bell
+1499   27B8 03 56 45 52 	.db	3,"VER"
+1500   27BC 71 22       	.dw	vers
+1501   27BE 03 43 4C 53 	.db	3,"CLS"
+1502   27C2 B2 22       	.dw	cls
+1503   27C4 08 48 41 52 	.db	8,"HARDWARE"
+1503   27C8 44 57 41 52 
+1503   27CC 45 
+1504   27CD 8A 22       	.dw	hardware
+1505   27CF 06 52 41 4D 	.db	6,"RAMCHK"
+1505   27D3 43 48 4B 
+1506   27D6 AA 21       	.dw	ramfind
+1507   27D8 02 47 4F    	.db	2,"GO"
+1508   27DB FF 22       	.dw	go
+1509   27DD 04 44 55 4D 	.db 	4,"DUMP"
+1509   27E1 50 
+1510   27E2 5B 24       	.dw	dump
+1511   27E4 04 41 44 44 	.db	4,"ADDR"
+1511   27E8 52 
+1512   27E9 09 23       	.dw 	setaddr
+1513   27EB 04 44 41 54 	.db	4,"DATA"
+1513   27EF 41 
+1514   27F0 7B 23       	.dw	datainp
+1515   27F2 03 44 49 53 	.db	3,"DIS"
+1516   27F6 29 23       	.dw	disassemble
+1517   27F8 03 49 4E 43 	.db	3,"INC"
+1518   27FC BD 22       	.dw	autoinc
+1519   27FE 04 53 43 53 	.db	4,"SCSM"
+1519   2802 4D 
+1520   2803 B9 22       	.dw	scmon
+1521   2805 04 37 53 45 	.db	4,"7SEG"
+1521   2809 47 
+1522   280A 07 24       	.dw 	segtest
+1523   280C 04 53 4D 4F 	.db	4,"SMON"
+1523   2810 4E 
+1524   2811 7D 21       	.dw	banglp
+1525   2813 04 48 41 4C 	.db	4,"HALT"
+1525   2817 54 
+1526   2818 36 24       	.dw	dohalt
+1527   281A 07 4B 45 59 	.db	7,"KEYTEST"
+1527   281E 54 45 53 54 
+1528   2822 38 24       	.dw	keybtst
+1529   2824 04 52 45 47 	.db	4,"REGS"
+1529   2828 53 
+1530   2829 56 25       	.dw	regs
+1531   282B FF          	.db	0ffh			; FFh  = end of list
+1532   282C             
+1533   282C             
+1534   282C             ; Variables
+1535   282C             
+1536   282C 00 00       ramst	.dw	0000h
+1537   282E 00 00       ramtst	.dw	0000h
+1538   2830 00 00       ramend	.dw	0000h
+1539   2832             
+1540   2832 30 30 30 30 wordbuf	.db	"0000",0
+1540   2836 00 
+1541   2837             
+1542   2837 01          ramflag	.db 	1
+1543   2838             
+1544   2838 01          autinc	.db	1
+1545   2839             
+1546   2839 00          llen	.db	0
+1547   283A             
+1548   283A 00          sbufl	.db	0
+1549   283B             sbuf	.block	inplen
+1550   2856             
+1551   2856 00          ucmdl	.db	0
+1552   2857             ucmd	.block	inplen
+1553   2872             
+1554   2872 00          uparaml	.db	0
+1555   2873             uparam	.block	inplen
+1556   288E             
+1557   288E             dispbuf	.block	80			; one line of terminal always
+1558   28DE             
+1559   28DE 00 20       caddr	.dw	2000h			; current address
+1560   28E0             
+1561   28E0 30 30 30 30 prompt	.db	"0000 > ",0
+1561   28E4 20 3E 20 00 
+1562   28E8 30 30 30 30 inprmpt	.db	"0000 00 : ",0
+1562   28EC 20 30 30 20 
+1562   28F0 3A 20 00 
+1563   28F3             
+1564   28F3             
+1565   28F3             
+1566   28F3             ; JIMS DISASSEMBLER SOURCE CODE
+1567   28F3             ; -----------------------------
+1568   28F3             
+1569   28F3             ; Written originally by Jim Robertson
+1570   28F3             ;
+1571   28F3             ; Revised version that can run from any memory location, developed by Brian Chiha
+1572   28F3             ;
+1573   28F3             ; updates by Craig Hart to fix remaining memory constraints and correct two deficiencies
+1574   28F3             ; - IN (xx),A/OUT A,(xx) were missing their brackets
+1575   28F3             ; - Conditional JPs (e.g. JP NC, zzzz) were missing the comma
+1576   28F3             ; Also removed left over inactive code, fixed JP > JP > routine double JPs
+1577   28F3             ;
+1578   28F3             
+1579   28F3             
+1580   28F3             ; Local Variables
+1581   28F3             DISFROM:	.block 18
+1582   2905             DISMID:		.block 18
+1583   2917 00 00       DISEND:		.dw 0			; pointer to last valid char in disfrom
+1584   2919 00          DISFLAG:	.db 0 			; Dis Flag for HL,IX,IY
+1585   291A 00 00       PERFROM:	.dw 0 			; Start Address to disassemble from
+1586   291C             
+1587   291C             DIS_START:
+1588   291C 21 F3 28    	LD	HL,DISFROM
+1589   291F AF          	XOR	A
+1590   2920 32 19 29    	LD	(DISFLAG),A
+1591   2923 22 17 29    	LD	(DISEND),HL
+1592   2926 2A 1A 29    	LD	HL,(PERFROM)
+1593   2929 E5          	PUSH	HL
+1594   292A CD B2 2A    	CALL	hltoascii
+1595   292D             
+1596   292D 06 20       	LD	B,20h			; fill 32 spaces
+1597   292F CD E1 2A    	CALL	addspc
+1598   2932             
+1599   2932 21 F3 28    	ld hl,DISFROM			; move backwards in buffer
+1600   2935 01 05 00    	ld bc,5
+1601   2938 09          	add hl,bc
+1602   2939             
+1603   2939 22 17 29    	LD	(DISEND),HL
+1604   293C E1          	POP	HL
+1605   293D 7E          	LD	A,(HL)			; a = Opcode to decode
+1606   293E E5          	PUSH	HL
+1607   293F 16 01       	LD	D,01
+1608   2941 CD 5D 2E    	CALL	onebyt
+1609   2944 E1          	POP	HL
+1610   2945 30 08       	JR	NC,foundone
+1611   2947 CD 57 29    	CALL	mltbyte
+1612   294A 4E          	LD	C,(HL)
+1613   294B 7E          	LD	A,(HL)
+1614   294C D4 3B 2D    	CALL	NC,miscop
+1615   294F             
+1616   294F             foundone:
+1617   294F 2A 1A 29    	LD	HL,(PERFROM)
+1618   2952 23          	INC	HL
+1619   2953 22 1A 29    	LD	(PERFROM),HL
+1620   2956 C9          	RET				; return to caller, we are done
+1621   2957             
+1622   2957             mltbyte:
+1623   2957 FE 40       	CP	40h
+1624   2959 38 18       	JR	C,L0x304D
+1625   295B FE C0       	CP	0C0h
+1626   295D 38 16       	JR	C,L0x304F
+1627   295F FE CB       	CP	0CBh
+1628   2961 CA 06 2B    	JP	Z,L0x31DE
+1629   2964 0E 00       	LD	C,00
+1630   2966 FE DD       	CP	0DDh
+1631   2968 28 05       	JR	Z,L0x3049
+1632   296A FE FD       	CP	0FDh
+1633   296C 20 05       	JR	NZ,L0x304D
+1634   296E 0C          	INC	C
+1635   296F             L0x3049:
+1636   296F 0C          	INC	C
+1637   2970 C3 FD 29    	JP	L0x30D7
+1638   2973             L0x304D:
+1639   2973 B7          	OR	A
+1640   2974 C9          	RET
+1641   2975             
+1642   2975             L0x304F:
+1643   2975 F5          	PUSH	AF
+1644   2976 CD 7B 29    	CALL	L0x3055
+1645   2979 18 05       	JR	L0x305A
+1646   297B             L0x3055:
+1647   297B 06 01       	LD	B,01
+1648   297D C3 27 2B    	JP	L0x31FF
+1649   2980             L0x305A:
+1650   2980 F1          	POP	AF
+1651   2981             L0x305B:
+1652   2981 FE 80       	CP	80h
+1653   2983 30 14       	JR	NC,L0x3073
+1654   2985 F5          	PUSH	AF
+1655   2986 CD 2D 2B    	CALL	L0x3205
+1656   2989 F1          	POP	AF
+1657   298A CD D4 2A    	CALL	L0x31AC
+1658   298D F5          	PUSH	AF
+1659   298E CD 2C 2A    	CALL	L0x3106
+1660   2991 CD 8C 2A    	CALL	addcomma
+1661   2994 F1          	POP	AF
+1662   2995 4F          	LD	C,A
+1663   2996 C3 2D 2A    	JP	L0x3107
+1664   2999             L0x3073:
+1665   2999 E6 3F       	AND	3Fh
+1666   299B CD D4 2A    	CALL	L0x31AC
+1667   299E F5          	PUSH	AF
+1668   299F 3E 86       	LD	A,86h
+1669   29A1 81          	ADD	A,C
+1670   29A2 81          	ADD	A,C
+1671   29A3 81          	ADD	A,C
+1672   29A4 CD 79 2A    	CALL	L0x3153
+1673   29A7 CD AC 29    	CALL	L0x3086
+1674   29AA 18 0C       	JR	L0x3092
+1675   29AC             L0x3086:
+1676   29AC CD A3 2A    	CALL	L0x317B
+1677   29AF C0          	RET	NZ
+1678   29B0 0E 07       	LD	C,07
+1679   29B2 CD 31 2A    	CALL	L0x310B
+1680   29B5 C3 8C 2A    	JP	addcomma
+1681   29B8             L0x3092:
+1682   29B8 F1          	POP	AF
+1683   29B9 4F          	LD	C,A
+1684   29BA 18 70       	JR	L0x3106
+1685   29BC             L0x3096:
+1686   29BC FE 40       	CP	40h
+1687   29BE 30 16       	JR	NC,L0x30B0
+1688   29C0 CD D4 2A    	CALL	L0x31AC
+1689   29C3 F5          	PUSH	AF
+1690   29C4 79          	LD	A,C
+1691   29C5 FE 07       	CP	07
+1692   29C7 20 01       	JR	NZ,L0x30A4
+1693   29C9 0D          	DEC	C
+1694   29CA             L0x30A4:
+1695   29CA 3E 9E       	LD	A,9Eh
+1696   29CC 81          	ADD	A,C
+1697   29CD 81          	ADD	A,C
+1698   29CE 81          	ADD	A,C
+1699   29CF CD 79 2A    	CALL	L0x3153
+1700   29D2 F1          	POP	AF
+1701   29D3 4F          	LD	C,A
+1702   29D4 18 56       	JR	L0x3106
+1703   29D6             L0x30B0:
+1704   29D6 D6 40       	SUB	40h
+1705   29D8 F5          	PUSH	AF
+1706   29D9 06 B3       	LD	B,0B3h
+1707   29DB FE 40       	CP	040h
+1708   29DD 38 08       	JR	C,L0x30C1
+1709   29DF 06 B6       	LD	B,0B6h
+1710   29E1 FE 80       	CP	080h
+1711   29E3 38 02       	JR	C,L0x30C1
+1712   29E5 06 B9       	LD	B,0B9h
+1713   29E7             L0x30C1:
+1714   29E7 78          	LD	A,B
+1715   29E8 CD 79 2A    	CALL	L0x3153
+1716   29EB F1          	POP	AF
+1717   29EC E6 3F       	AND	03Fh
+1718   29EE CD D4 2A    	CALL	L0x31AC
+1719   29F1 F5          	PUSH	AF
+1720   29F2 79          	LD	A,C
+1721   29F3 CD C2 2A    	CALL	hex2ascii
+1722   29F6 CD 8C 2A    	CALL	addcomma
+1723   29F9 F1          	POP	AF
+1724   29FA 4F          	LD	C,A
+1725   29FB 18 2F       	JR	L0x3106
+1726   29FD             L0x30D7:
+1727   29FD 2A 1A 29    	LD	HL,(PERFROM)
+1728   2A00 23          	INC	HL
+1729   2A01 7E          	LD	A,(HL)
+1730   2A02 FE CB       	CP	0CBh
+1731   2A04 28 0A       	JR	Z,L0x30EA
+1732   2A06 FE BF       	CP	0BFh
+1733   2A08 2B          	DEC	HL
+1734   2A09 D0          	RET	NC
+1735   2A0A FE 40       	CP	040h
+1736   2A0C 30 05       	JR	NC,L0x30ED
+1737   2A0E A7          	AND	A
+1738   2A0F C9          	RET
+1739   2A10             
+1740   2A10             L0x30EA:
+1741   2A10 CB F9       	SET	7,C
+1742   2A12 23          	INC	HL
+1743   2A13             L0x30ED:
+1744   2A13 23          	INC	HL
+1745   2A14 7E          	LD	A,(HL)
+1746   2A15 F5          	PUSH	AF
+1747   2A16 06 04       	LD	B,004h
+1748   2A18 79          	LD	A,C
+1749   2A19 32 19 29    	LD	(DISFLAG),A
+1750   2A1C CB 79       	BIT	7,C
+1751   2A1E 20 01       	JR	NZ,L0x30FB
+1752   2A20 05          	DEC	B
+1753   2A21             L0x30FB:
+1754   2A21 CD 27 2B    	CALL	L0x31FF
+1755   2A24 F1          	POP	AF
+1756   2A25 CB 79       	BIT	7,C
+1757   2A27 20 93       	JR	NZ,L0x3096
+1758   2A29 C3 81 29    	JP	L0x305B
+1759   2A2C             
+1760   2A2C             
+1761   2A2C             L0x3106:
+1762   2A2C 79          	LD	A,C
+1763   2A2D             L0x3107:
+1764   2A2D FE 06       	CP	006h
+1765   2A2F 28 07       	JR	Z,L0x3112		; is it HL/IX/IY?
+1766   2A31             L0x310B:
+1767   2A31 3E 01       	LD	A,001h			; one register
+1768   2A33             L0x310D:
+1769   2A33 21 BB 30    	LD	HL,TBL_REG		; set start point for lookup
+1770   2A36 18 33       	JR	L0x3145
+1771   2A38             
+1772   2A38             L0x3112:
+1773   2A38 3A 19 29    	LD	A,(DISFLAG)
+1774   2A3B B7          	OR	A
+1775   2A3C 20 06       	JR	NZ,L0x311E
+1776   2A3E 0E 08       	LD	C,008h
+1777   2A40 3E 04       	LD	A,004h
+1778   2A42 18 EF       	JR	L0x310D
+1779   2A44             L0x311E:
+1780   2A44 F5          	PUSH	AF
+1781   2A45 1F          	RRA
+1782   2A46 0E 0C       	LD	C,00Ch
+1783   2A48 38 02       	JR	C,L0x3126
+1784   2A4A 0E 13       	LD	C,013h
+1785   2A4C             L0x3126:
+1786   2A4C 3E 07       	LD	A,007h
+1787   2A4E CD 33 2A    	CALL	L0x310D
+1788   2A51 F1          	POP	AF
+1789   2A52 17          	RLA
+1790   2A53 ED 5B 1A 29 	LD	DE,(PERFROM)
+1791   2A57 30 01       	JR	NC,L0x3134
+1792   2A59 1B          	DEC	DE
+1793   2A5A             L0x3134:
+1794   2A5A 3A 17 29    	LD	A,(DISEND)
+1795   2A5D D6 03       	SUB	003h
+1796   2A5F 32 17 29    	LD	(DISEND),A
+1797   2A62 1A          	LD	A,(DE)
+1798   2A63 CD B9 2A    	CALL	atoascii
+1799   2A66 23          	INC	HL
+1800   2A67 22 17 29    	LD	(DISEND),HL
+1801   2A6A C9          	RET
+1802   2A6B             
+1803   2A6B             ;copy ASCII to buffer based on BC as an index; B is set externally
+1804   2A6B             
+1805   2A6B             L0x3145:
+1806   2A6B ED 5B 17 29 	LD	DE,(DISEND)
+1807   2A6F 09          	ADD	HL,BC
+1808   2A70 4F          	LD	C,A
+1809   2A71 ED B0       	LDIR
+1810   2A73 ED 53 17 29 	LD	(DISEND),DE
+1811   2A77 37          	SCF
+1812   2A78 C9          	RET
+1813   2A79             
+1814   2A79             ; finds the text in the TBL_OPS table and outputs it
+1815   2A79             ; A register +82h points to table entry required
+1816   2A79             ; so subtract 82h to get the right location (Leftover quirk of original code)
+1817   2A79             
+1818   2A79             
+1819   2A79             L0x3153:
+1820   2A79 21 58 2F    	LD HL,TBL_OPS
+1821   2A7C             
+1822   2A7C D6 82       	sub 82h				; realign A
+1823   2A7E 5F          	ld e,a				; and add offset to HL
+1824   2A7F 16 00       	ld d,0
+1825   2A81 19          	add hl,de
+1826   2A82             
+1827   2A82             ;	ld	H,37h			; high byte of table location
+1828   2A82             ;	LD	L,A
+1829   2A82             ;	LD	DE,0FE9Eh
+1830   2A82             ;	ADD	HL,DE
+1831   2A82 EB          	EX	DE,HL
+1832   2A83 18 0C       	JR	asciilookup
+1833   2A85             L0x315D:
+1834   2A85 21 05 29    	LD	HL,DISMID
+1835   2A88 22 17 29    	LD	(DISEND),HL
+1836   2A8B C9          	RET
+1837   2A8C             addcomma:
+1838   2A8C 01 06 00    	LD	BC,00006h
+1839   2A8F 18 A0       	JR	L0x310B
+1840   2A91             
+1841   2A91             ; ASCII lookup with DE as the table address
+1842   2A91             ; copies table entry to buffer
+1843   2A91             
+1844   2A91             asciilookup:
+1845   2A91 2A 17 29    	LD	HL,(DISEND)
+1846   2A94 1A          	LD	A,(DE)
+1847   2A95 77          	LD	(HL),A
+1848   2A96 CB BE       	RES	7,(HL)
+1849   2A98 23          	INC	HL
+1850   2A99 22 17 29    	LD	(DISEND),HL
+1851   2A9C 13          	INC	DE
+1852   2A9D B7          	OR	A
+1853   2A9E FA DF 2A    	JP	M,addspc1
+1854   2AA1 18 EE       	JR	asciilookup
+1855   2AA3             
+1856   2AA3             L0x317B:
+1857   2AA3 79          	LD	A,C
+1858   2AA4 FE 04       	CP	004h
+1859   2AA6 38 02       	JR	C,L0x3182
+1860   2AA8 B7          	OR	A
+1861   2AA9 C9          	RET
+1862   2AAA             L0x3182:
+1863   2AAA FE 02       	CP	002h
+1864   2AAC 20 02       	JR	NZ,L0x3188
+1865   2AAE 3D          	DEC	A
+1866   2AAF C9          	RET
+1867   2AB0             L0x3188:
+1868   2AB0 AF          	XOR	A
+1869   2AB1 C9          	RET
+1870   2AB2             
+1871   2AB2             ; three display conversion routines for A register in HEX, to ASCII
+1872   2AB2             
+1873   2AB2             hltoascii:
+1874   2AB2 E5          	PUSH	HL
+1875   2AB3 7C          	LD	A,H
+1876   2AB4 CD B9 2A    	CALL	atoascii
+1877   2AB7 E1          	POP	HL
+1878   2AB8 7D          	LD	A,L
+1879   2AB9             atoascii:
+1880   2AB9 F5          	PUSH	AF
+1881   2ABA 1F          	RRA
+1882   2ABB 1F          	RRA
+1883   2ABC 1F          	RRA
+1884   2ABD 1F          	RRA
+1885   2ABE CD C2 2A    	CALL	hex2ascii
+1886   2AC1 F1          	POP	AF
+1887   2AC2             hex2ascii:
+1888   2AC2 E6 0F       	AND	0Fh
+1889   2AC4 C6 90       	ADD	A,090h
+1890   2AC6 27          	DAA
+1891   2AC7 CE 40       	ADC	A,040h
+1892   2AC9 27          	DAA
+1893   2ACA 2A 17 29    	LD	HL,(DISEND)
+1894   2ACD 77          	LD	(HL),A
+1895   2ACE 23          	INC	HL
+1896   2ACF 22 17 29    	LD	(DISEND),HL
+1897   2AD2 37          	SCF
+1898   2AD3 C9          	RET
+1899   2AD4             
+1900   2AD4             L0x31AC:
+1901   2AD4 F5          	PUSH	AF
+1902   2AD5 E6 38       	AND	038h
+1903   2AD7 1F          	RRA
+1904   2AD8 1F          	RRA
+1905   2AD9 1F          	RRA
+1906   2ADA 4F          	LD	C,A
+1907   2ADB F1          	POP	AF
+1908   2ADC E6 07       	AND	007h
+1909   2ADE C9          	RET
+1910   2ADF             
+1911   2ADF             addspc1:
+1912   2ADF 06 01       	LD	B,1
+1913   2AE1             
+1914   2AE1             ; inserts a space into the display buffer
+1915   2AE1             
+1916   2AE1             addspc:
+1917   2AE1 3E 20       	LD	A,020h
+1918   2AE3 2A 17 29    	LD	HL,(DISEND)
+1919   2AE6             L0x31BE:
+1920   2AE6 77          	LD	(HL),A
+1921   2AE7 23          	INC	HL
+1922   2AE8 10 FC       	DJNZ	L0x31BE
+1923   2AEA 22 17 29    	LD	(DISEND),HL
+1924   2AED C9          	RET
+1925   2AEE             
+1926   2AEE             ; convert current opcode to ASCII (HEX digits) and add to buffer
+1927   2AEE             ; B = number of opcodes to process
+1928   2AEE             
+1929   2AEE             
+1930   2AEE             L0x31C6:
+1931   2AEE ED 5B 1A 29 	LD	DE,(PERFROM)
+1932   2AF2             
+1933   2AF2             L0x31CA:
+1934   2AF2 C5          	PUSH	BC
+1935   2AF3 1A          	LD	A,(DE)			; get opcode
+1936   2AF4 F5          	PUSH	AF
+1937   2AF5 CD B9 2A    	CALL	atoascii		; convert it to ascii sctring
+1938   2AF8 CD DF 2A    	CALL	addspc1			; throw in a space character between opcodes
+1939   2AFB F1          	POP	AF
+1940   2AFC 13          	INC	DE
+1941   2AFD C1          	POP	BC
+1942   2AFE 10 F2       	DJNZ	L0x31CA			; loop till done
+1943   2B00 1B          	DEC	DE
+1944   2B01 ED 53 1A 29 	LD	(PERFROM),DE
+1945   2B05 C9          	RET
+1946   2B06             L0x31DE:
+1947   2B06 06 02       	LD	B,002h
+1948   2B08 CD EE 2A    	CALL	L0x31C6
+1949   2B0B CD 85 2A    	CALL	L0x315D
+1950   2B0E C3 BC 29    	JP	L0x3096
+1951   2B11             L0x31E9:
+1952   2B11 E6 CF       	AND	0CFh
+1953   2B13 FE 01       	CP	001h
+1954   2B15 20 47       	JR	NZ,L0x3236
+1955   2B17 CD 25 2B    	CALL	L0x31FD
+1956   2B1A CD 2D 2B    	CALL	L0x3205
+1957   2B1D CD 32 2B    	CALL	L0x320A
+1958   2B20 CD 8C 2A    	CALL	addcomma
+1959   2B23 18 24       	JR	L0x3221
+1960   2B25             L0x31FD:
+1961   2B25 06 03       	LD	B,003h
+1962   2B27             L0x31FF:
+1963   2B27 CD EE 2A    	CALL	L0x31C6
+1964   2B2A C3 85 2A    	JP	L0x315D
+1965   2B2D             L0x3205:
+1966   2B2D 3E 83       	LD	A,083h
+1967   2B2F C3 79 2A    	JP	L0x3153
+1968   2B32             L0x320A:
+1969   2B32 79          	LD	A,C
+1970   2B33             L0x320B:
+1971   2B33 F5          	PUSH	AF
+1972   2B34 E6 30       	AND	030h
+1973   2B36 CD DE 2E    	CALL	L0x35A6
+1974   2B39 C6 1A       	ADD	A,01Ah
+1975   2B3B 06 00       	LD	B,000h
+1976   2B3D 4F          	LD	C,A
+1977   2B3E 3E 02       	LD	A,002h
+1978   2B40 21 BB 30    	LD	HL,TBL_REG
+1979   2B43 CD 6B 2A    	CALL	L0x3145
+1980   2B46 F1          	POP	AF
+1981   2B47 4F          	LD	C,A
+1982   2B48 C9          	RET
+1983   2B49             
+1984   2B49             L0x3221:
+1985   2B49 2A 1A 29    	LD	HL,(PERFROM)
+1986   2B4C 7E          	LD	A,(HL)
+1987   2B4D E5          	PUSH	HL
+1988   2B4E CD B9 2A    	CALL	atoascii
+1989   2B51 E1          	POP	HL
+1990   2B52 2B          	DEC	HL
+1991   2B53 7E          	LD	A,(HL)
+1992   2B54 E5          	PUSH	HL
+1993   2B55 CD B9 2A    	CALL	atoascii
+1994   2B58 E1          	POP	HL
+1995   2B59 23          	INC	HL
+1996   2B5A 22 1A 29    	LD	(PERFROM),HL
+1997   2B5D C9          	RET
+1998   2B5E             
+1999   2B5E             L0x3236:
+2000   2B5E E6 C7       	AND	0C7h
+2001   2B60 FE 06       	CP	006h
+2002   2B62 20 18       	JR	NZ,L0x3254
+2003   2B64 06 02       	LD	B,002h
+2004   2B66 CD E6 2B    	CALL	L0x32BE
+2005   2B69 79          	LD	A,C
+2006   2B6A CD D4 2A    	CALL	L0x31AC
+2007   2B6D 06 00       	LD	B,000h
+2008   2B6F CD 1F 2F    	CALL	L0x35E7
+2009   2B72 CD 8C 2A    	CALL	addcomma
+2010   2B75             L0x324D:
+2011   2B75 2A 1A 29    	LD	HL,(PERFROM)
+2012   2B78 7E          	LD	A,(HL)
+2013   2B79 C3 B9 2A    	JP	atoascii
+2014   2B7C             L0x3254:
+2015   2B7C 79          	LD	A,C
+2016   2B7D F5          	PUSH	AF
+2017   2B7E E6 EF       	AND	0EFh
+2018   2B80 FE 0A       	CP	00Ah
+2019   2B82 20 1F       	JR	NZ,L0x327B
+2020   2B84 06 01       	LD	B,001h
+2021   2B86 CD E6 2B    	CALL	L0x32BE
+2022   2B89 79          	LD	A,C
+2023   2B8A 01 07 00    	LD	BC,00007h
+2024   2B8D CD 31 2A    	CALL	L0x310B
+2025   2B90 CD 8C 2A    	CALL	addcomma
+2026   2B93             L0x326B:
+2027   2B93 01 08 00    	LD	BC,0008h
+2028   2B96 CD 31 2A    	CALL	L0x310B
+2029   2B99 F1          	POP	AF
+2030   2B9A CD 33 2B    	CALL	L0x320B
+2031   2B9D 01 0B 00    	LD	BC,0000Bh
+2032   2BA0 C3 31 2A    	JP	L0x310B
+2033   2BA3             L0x327B:
+2034   2BA3 FE 02       	CP	002h
+2035   2BA5 20 11       	JR	NZ,L0x3290
+2036   2BA7 06 01       	LD	B,001h
+2037   2BA9 CD E6 2B    	CALL	L0x32BE
+2038   2BAC CD 3B 2F    	CALL	L0x3603
+2039   2BAF             L0x3287:
+2040   2BAF CD 8C 2A    	CALL	addcomma
+2041   2BB2 01 07 00    	LD	BC,00007h
+2042   2BB5 C3 31 2A    	JP	L0x310B
+2043   2BB8             L0x3290:
+2044   2BB8 FE 22       	CP	022h
+2045   2BBA 20 30       	JR	NZ,L0x32C4
+2046   2BBC 06 03       	LD	B,003h
+2047   2BBE CD E6 2B    	CALL	L0x32BE
+2048   2BC1 CD D7 2B    	CALL	L0x32AF
+2049   2BC4 CD 8C 2A    	CALL	addcomma
+2050   2BC7 F1          	POP	AF
+2051   2BC8             L0x32A0:
+2052   2BC8 CB 67       	BIT	4,A
+2053   2BCA 20 03       	JR	NZ,L0x32A7
+2054   2BCC             L0x32A4:
+2055   2BCC C3 05 2F    	JP	L0x35CD
+2056   2BCF             L0x32A7:
+2057   2BCF 3E 01       	LD	A,001h
+2058   2BD1 01 07 00    	LD	BC,00007h
+2059   2BD4 C3 33 2A    	JP	L0x310D
+2060   2BD7             L0x32AF:
+2061   2BD7 01 08 00    	LD	BC,00008h
+2062   2BDA CD 31 2A    	CALL	L0x310B
+2063   2BDD CD 49 2B    	CALL	L0x3221
+2064   2BE0 01 0B 00    	LD	BC,0000Bh
+2065   2BE3 C3 31 2A    	JP	L0x310B
+2066   2BE6             L0x32BE:
+2067   2BE6 CD 27 2B    	CALL	L0x31FF
+2068   2BE9 C3 2D 2B    	JP	L0x3205
+2069   2BEC             L0x32C4:
+2070   2BEC FE 2A       	CP	02Ah
+2071   2BEE 20 0E       	JR	NZ,L0x32D6
+2072   2BF0 06 03       	LD	B,003h
+2073   2BF2 CD E6 2B    	CALL	L0x32BE
+2074   2BF5 F1          	POP	AF
+2075   2BF6 CD C8 2B    	CALL	L0x32A0
+2076   2BF9 CD 8C 2A    	CALL	addcomma
+2077   2BFC 18 D9       	JR	L0x32AF
+2078   2BFE             L0x32D6:
+2079   2BFE E6 CF       	AND	0CFh
+2080   2C00 FE 03       	CP	003h
+2081   2C02 20 0F       	JR	NZ,L0x32EB
+2082   2C04 CD 0B 2C    	CALL	L0x32E3
+2083   2C07 F1          	POP	AF
+2084   2C08 C3 33 2B    	JP	L0x320B
+2085   2C0B             L0x32E3:
+2086   2C0B CD 7B 29    	CALL	L0x3055
+2087   2C0E 3E BC       	LD	A,0BCh
+2088   2C10             L0x32E8:
+2089   2C10 C3 79 2A    	JP	L0x3153
+2090   2C13             L0x32EB:
+2091   2C13 FE 0B       	CP	00Bh
+2092   2C15 20 0C       	JR	NZ,L0x32FB
+2093   2C17 CD 1E 2C    	CALL	L0x32F6
+2094   2C1A F1          	POP	AF
+2095   2C1B C3 33 2B    	JP	L0x320B
+2096   2C1E             L0x32F6:
+2097   2C1E 3E BF       	LD	A,0BFh
+2098   2C20 C3 51 2E    	JP	L0x3511
+2099   2C23             L0x32FB:
+2100   2C23 E6 C7       	AND	0C7h
+2101   2C25 FE 04       	CP	004h
+2102   2C27 20 0A       	JR	NZ,L0x330B
+2103   2C29 CD 0B 2C    	CALL	L0x32E3
+2104   2C2C F1          	POP	AF
+2105   2C2D             L0x3305:
+2106   2C2D CD D4 2A    	CALL	L0x31AC
+2107   2C30 C3 2C 2A    	JP	L0x3106
+2108   2C33             L0x330B:
+2109   2C33 FE 05       	CP	005h
+2110   2C35 20 06       	JR	NZ,L0x3315
+2111   2C37 CD 1E 2C    	CALL	L0x32F6
+2112   2C3A F1          	POP	AF
+2113   2C3B 18 F0       	JR	L0x3305
+2114   2C3D             L0x3315:
+2115   2C3D 79          	LD	A,C
+2116   2C3E E6 CF       	AND	0CFh
+2117   2C40 FE 09       	CP	009h
+2118   2C42 20 0F       	JR	NZ,L0x332B
+2119   2C44 3E 86       	LD	A,086h
+2120   2C46 CD 51 2E    	CALL	L0x3511
+2121   2C49 CD CC 2B    	CALL	L0x32A4
+2122   2C4C CD 8C 2A    	CALL	addcomma
+2123   2C4F F1          	POP	AF
+2124   2C50 C3 33 2B    	JP	L0x320B
+2125   2C53             L0x332B:
+2126   2C53 F1          	POP	AF
+2127   2C54 FE 10       	CP	010h
+2128   2C56 20 0F       	JR	NZ,L0x334B
+2129   2C58 3E D9       	LD	A,0D9h
+2130   2C5A             L0x3332:
+2131   2C5A F5          	PUSH	AF
+2132   2C5B 06 02       	LD	B,002h
+2133   2C5D CD 27 2B    	CALL	L0x31FF
+2134   2C60 F1          	POP	AF
+2135   2C61 CD 79 2A    	CALL	L0x3153
+2136   2C64 C3 2B 2F    	JP	L0x35F3
+2137   2C67             L0x334B:
+2138   2C67 FE 18       	CP	018h
+2139   2C69 20 04       	JR	NZ,L0x3353
+2140   2C6B 3E D5       	LD	A,0D5h
+2141   2C6D 18 EB       	JR	L0x3332
+2142   2C6F             L0x3353:					; JR Z and JR C checks
+2143   2C6F 79          	LD	A,C
+2144   2C70 E6 C7       	AND	0C7h
+2145   2C72 B7          	OR	A
+2146   2C73 20 35       	JR	NZ,L0x3377
+2147   2C75 79          	LD	A,C
+2148   2C76 F5          	PUSH	AF
+2149   2C77 06 02       	LD	B,002h
+2150   2C79 CD 27 2B    	CALL	L0x31FF
+2151   2C7C 3E D5       	LD	A,0D5h
+2152   2C7E CD 79 2A    	CALL	L0x3153
+2153   2C81 F1          	POP	AF
+2154   2C82 CD 9F 2C    	CALL	L0x336C
+2155   2C85 CD 8B 2C    	call fixcomma
+2156   2C88 C3 2B 2F    	JP	L0x35F3
+2157   2C8B             fixcomma:					; comma fix for JP/JR <flag>, xxx
+2158   2C8B E5          	push hl
+2159   2C8C F5          	push af
+2160   2C8D 2A 17 29    	ld hl,(DISEND)
+2161   2C90 2B          	dec hl
+2162   2C91 3E 2C       	LD a,02ch				; ","
+2163   2C93 77          	ld (hl),a
+2164   2C94 23          	inc hl
+2165   2C95 3E 20       	LD a,020h				; " "
+2166   2C97 77          	ld (hl),a
+2167   2C98 23          	inc hl
+2168   2C99 22 17 29    	ld (DISEND),hl
+2169   2C9C F1          	pop af
+2170   2C9D E1          	pop hl
+2171   2C9E C9          	ret
+2172   2C9F             
+2173   2C9F             L0x336C:
+2174   2C9F E6 18       	AND	018h
+2175   2CA1             L0x336E:
+2176   2CA1 1F          	RRA
+2177   2CA2 1F          	RRA
+2178   2CA3 1F          	RRA
+2179   2CA4 87          	ADD	A,A
+2180   2CA5 C6 DD       	ADD	A,0DDh
+2181   2CA7 C3 79 2A    	JP	L0x3153
+2182   2CAA             L0x3377:
+2183   2CAA 79          	LD	A,C
+2184   2CAB FE C3       	CP	0C3h
+2185   2CAD 28 0E       	JR	Z,L0x3391
+2186   2CAF FE CD       	CP	0CDh
+2187   2CB1 28 06       	JR	Z,L0x338D
+2188   2CB3 18 1E       	jr L0x33A7
+2189   2CB5             L0x3389:
+2190   2CB5 E6 38       	AND	038h
+2191   2CB7 18 E8       	JR	L0x336E
+2192   2CB9             L0x338D:
+2193   2CB9 3E C8       	LD	A,0C8h
+2194   2CBB 18 02       	JR	L0x3393
+2195   2CBD             L0x3391:
+2196   2CBD 3E CC       	LD	A,0CCh
+2197   2CBF             L0x3393:
+2198   2CBF 06 03       	LD	B,003h
+2199   2CC1 F5          	PUSH	AF
+2200   2CC2 CD 27 2B    	CALL	L0x31FF
+2201   2CC5 F1          	POP	AF
+2202   2CC6 FE A6       	CP	0A6h
+2203   2CC8 20 03       	JR	NZ,L0x33A1
+2204   2CCA C3 79 2A    	JP	L0x3153
+2205   2CCD             L0x33A1:
+2206   2CCD CD 10 2C    	CALL	L0x32E8
+2207   2CD0 C3 49 2B    	JP	L0x3221
+2208   2CD3             L0x33A7:
+2209   2CD3 E6 C7       	AND	0C7h
+2210   2CD5 FE C0       	CP	0C0h
+2211   2CD7 20 18       	JR	NZ,L0x33C5
+2212   2CD9 3E C5       	LD	A,0C5h
+2213   2CDB 06 01       	LD	B,001h
+2214   2CDD CD E4 2C    	CALL	L0x33B8
+2215   2CE0 2B          	DEC	HL
+2216   2CE1 36 20       	LD	(HL),020h
+2217   2CE3 C9          	RET
+2218   2CE4             L0x33B8:
+2219   2CE4 C5          	PUSH	BC
+2220   2CE5 F5          	PUSH	AF
+2221   2CE6 CD 27 2B    	CALL	L0x31FF
+2222   2CE9 F1          	POP	AF
+2223   2CEA CD 10 2C    	CALL	L0x32E8
+2224   2CED C1          	POP	BC
+2225   2CEE 79          	LD	A,C
+2226   2CEF 18 C4       	JR	L0x3389
+2227   2CF1             L0x33C5:
+2228   2CF1 79          	LD	A,C
+2229   2CF2 E6 C7       	AND	0C7h
+2230   2CF4 FE C4       	CP	0C4h
+2231   2CF6 20 0D       	JR	NZ,L0x33D6
+2232   2CF8 3E C8       	LD	A,0C8h
+2233   2CFA             
+2234   2CFA             L0x33CE:					; CALL & JP NZ/NC/PO/P output
+2235   2CFA 06 03       	LD	B,003h
+2236   2CFC CD E4 2C    	CALL	L0x33B8
+2237   2CFF CD 8B 2C    	call fixcomma
+2238   2D02 C3 49 2B    	JP	L0x3221
+2239   2D05             L0x33D6:
+2240   2D05 FE C2       	CP	0C2h
+2241   2D07 20 04       	JR	NZ,L0x33DE
+2242   2D09 3E CC       	LD	A,0CCh
+2243   2D0B 18 ED       	JR	L0x33CE
+2244   2D0D             
+2245   2D0D             L0x33DE:
+2246   2D0D 79          	LD	A,C
+2247   2D0E E6 CF       	AND	0CFh
+2248   2D10 FE C1       	CP	0C1h
+2249   2D12 20 04       	JR	NZ,L0x33E9
+2250   2D14 3E CE       	LD	A,0CEh
+2251   2D16 18 05       	JR	L0x33EE
+2252   2D18             L0x33E9:
+2253   2D18 FE C5       	CP	0C5h
+2254   2D1A C0          	RET	NZ
+2255   2D1B 3E D1       	LD	A,0D1h
+2256   2D1D             L0x33EE:
+2257   2D1D C5          	PUSH	BC
+2258   2D1E F5          	PUSH	AF
+2259   2D1F CD 7B 29    	CALL	L0x3055
+2260   2D22 F1          	POP	AF
+2261   2D23 CD 10 2C    	CALL	L0x32E8
+2262   2D26 C1          	POP	BC
+2263   2D27 79          	LD	A,C
+2264   2D28 FE F1       	CP	0F1h
+2265   2D2A 28 05       	JR	Z,L0x3401
+2266   2D2C FE F5       	CP	0F5h
+2267   2D2E C2 33 2B    	jp nz,L0x320B
+2268   2D31             L0x3401:
+2269   2D31 36 41       	LD	(HL),041h
+2270   2D33 23          	INC	HL
+2271   2D34 36 46       	LD	(HL),046h
+2272   2D36 23          	INC	HL
+2273   2D37 22 17 29    	LD	(DISEND),HL
+2274   2D3A C9          	RET
+2275   2D3B             miscop:
+2276   2D3B E6 C7       	AND	0C7h
+2277   2D3D FE C7       	CP	0C7h
+2278   2D3F 20 0D       	JR	NZ,L0x3421
+2279   2D41 79          	LD	A,C
+2280   2D42 F5          	PUSH	AF
+2281   2D43 3E C2       	LD	A,0C2h
+2282   2D45 CD 51 2E    	CALL	L0x3511
+2283   2D48 F1          	POP	AF
+2284   2D49 E6 38       	AND	038h
+2285   2D4B C3 B9 2A    	JP	atoascii
+2286   2D4E             L0x3421:
+2287   2D4E E6 C6       	AND	0C6h
+2288   2D50 FE C6       	CP	0C6h
+2289   2D52 79          	LD	A,C
+2290   2D53 20 18       	JR	NZ,L0x3440
+2291   2D55 AF          	XOR	A
+2292   2D56 CD 24 2E    	CALL	L0x34F7
+2293   2D59 79          	LD	A,C
+2294   2D5A C5          	PUSH	BC
+2295   2D5B CD D4 2A    	CALL	L0x31AC
+2296   2D5E 3E 86       	LD	A,086h
+2297   2D60 81          	ADD	A,C
+2298   2D61 81          	ADD	A,C
+2299   2D62 81          	ADD	A,C
+2300   2D63 CD 79 2A    	CALL	L0x3153
+2301   2D66 CD AC 29    	CALL	L0x3086
+2302   2D69 C1          	POP	BC
+2303   2D6A C3 75 2B    	JP	L0x324D
+2304   2D6D             L0x3440:
+2305   2D6D FE ED       	CP	0EDh
+2306   2D6F C2 15 2E    	JP	NZ,L0x34E8
+2307   2D72 2A 1A 29    	LD	HL,(PERFROM)
+2308   2D75 23          	INC	HL
+2309   2D76 7E          	LD	A,(HL)
+2310   2D77 4F          	LD	C,A
+2311   2D78 E6 C7       	AND	0C7h
+2312   2D7A FE 43       	CP	043h
+2313   2D7C 20 20       	JR	NZ,L0x3471
+2314   2D7E 06 04       	LD	B,004h
+2315   2D80 CD 27 2B    	CALL	L0x31FF
+2316   2D83 CD 2D 2B    	CALL	L0x3205
+2317   2D86 CB 59       	BIT	3,C
+2318   2D88 20 0B       	JR	NZ,L0x3468
+2319   2D8A C5          	PUSH	BC
+2320   2D8B CD D7 2B    	CALL	L0x32AF
+2321   2D8E CD 8C 2A    	CALL	addcomma
+2322   2D91 C1          	POP	BC
+2323   2D92 C3 32 2B    	JP	L0x320A
+2324   2D95             L0x3468:
+2325   2D95 CD 32 2B    	CALL	L0x320A
+2326   2D98 CD 8C 2A    	CALL	addcomma
+2327   2D9B C3 D7 2B    	JP	L0x32AF
+2328   2D9E             L0x3471:
+2329   2D9E 06 02       	LD	B,002h
+2330   2DA0 18 6A       	JR	L0x34DF
+2331   2DA2             L0x3475:
+2332   2DA2 79          	LD	A,C
+2333   2DA3 E6 C7       	AND	0C7h
+2334   2DA5 FE 40       	CP	040h
+2335   2DA7 20 1A       	JR	NZ,L0x3496
+2336   2DA9 C5          	PUSH	BC
+2337   2DAA 3E F0       	LD	A,0F0h
+2338   2DAC CD 79 2A    	CALL	L0x3153
+2339   2DAF C1          	POP	BC
+2340   2DB0 79          	LD	A,C
+2341   2DB1 CD D4 2A    	CALL	L0x31AC
+2342   2DB4 79          	LD	A,C
+2343   2DB5 CD 31 2A    	CALL	L0x310B
+2344   2DB8 CD 8C 2A    	CALL	addcomma
+2345   2DBB             L0x348E:
+2346   2DBB 01 22 00    	LD	BC,00022h
+2347   2DBE 3E 03       	LD	A,003h
+2348   2DC0 C3 33 2A    	JP	L0x310D
+2349   2DC3             L0x3496:
+2350   2DC3 FE 41       	CP	041h
+2351   2DC5 20 15       	JR	NZ,L0x34AF
+2352   2DC7 C5          	PUSH	BC
+2353   2DC8 3E ED       	LD	A,0EDh
+2354   2DCA CD 79 2A    	CALL	L0x3153
+2355   2DCD CD BB 2D    	CALL	L0x348E
+2356   2DD0 CD 8C 2A    	CALL	addcomma
+2357   2DD3 C1          	POP	BC
+2358   2DD4 79          	LD	A,C
+2359   2DD5 CD D4 2A    	CALL	L0x31AC
+2360   2DD8 79          	LD	A,C
+2361   2DD9 C3 31 2A    	JP	L0x310B
+2362   2DDC             L0x34AF:
+2363   2DDC FE 42       	CP	042h
+2364   2DDE 20 35       	JR	NZ,L0x34E8
+2365   2DE0 C5          	PUSH	BC
+2366   2DE1 79          	LD	A,C
+2367   2DE2 CB 5F       	BIT	3,A
+2368   2DE4 20 07       	JR	NZ,L0x34C0
+2369   2DE6 3E 8F       	LD	A,08Fh
+2370   2DE8 CD 79 2A    	CALL	L0x3153
+2371   2DEB 18 05       	JR	L0x34C5
+2372   2DED             L0x34C0:
+2373   2DED 3E 89       	LD	A,089h
+2374   2DEF CD 79 2A    	CALL	L0x3153
+2375   2DF2             L0x34C5:
+2376   2DF2 CD CC 2B    	CALL	L0x32A4
+2377   2DF5 CD 8C 2A    	CALL	addcomma
+2378   2DF8 C1          	POP	BC
+2379   2DF9 C3 32 2B    	JP	L0x320A
+2380   2DFC             L0x34CF:
+2381   2DFC 06 1C       	LD	B,01Ch
+2382   2DFE 2A 1A 29    	LD	HL,(PERFROM)
+2383   2E01 23          	INC	HL
+2384   2E02 7E          	LD	A,(HL)
+2385   2E03 21 30 30    	LD	HL,TBL_EXC
+2386   2E06 06 1C       	LD	B,01Ch
+2387   2E08 16 02       	LD	D,002h
+2388   2E0A 18 56       	JR	L0x3522
+2389   2E0C             L0x34DF:
+2390   2E0C E6 84       	AND	084h
+2391   2E0E 20 EC       	JR	NZ,L0x34CF
+2392   2E10 CD 27 2B    	CALL	L0x31FF
+2393   2E13 18 8D       	JR	L0x3475
+2394   2E15             L0x34E8:
+2395   2E15 FE D3       	CP	0D3h
+2396   2E17 20 27       	JR	NZ,L0x3502
+2397   2E19 3E ED       	LD	A,0EDh
+2398   2E1B CD 24 2E    	CALL	L0x34F7
+2399   2E1E CD 28 2E    	CALL	L0x34FB
+2400   2E21 C3 AF 2B    	JP	L0x3287
+2401   2E24             L0x34F7:
+2402   2E24 06 02       	LD	B,002h
+2403   2E26 18 2B       	JR	L0x3513
+2404   2E28             
+2405   2E28             L0x34FB:					; put brackets around OUT (xx),A & IN A,(xx)
+2406   2E28 2A 17 29    	ld hl,(DISEND)
+2407   2E2B 3E 28       	LD a,028h				; "("
+2408   2E2D 77          	ld (hl),a
+2409   2E2E 23          	inc hl
+2410   2E2F 22 17 29    	ld (DISEND),hl
+2411   2E32 CD 75 2B    	call L0x324D
+2412   2E35 2A 17 29    	ld hl,(DISEND)
+2413   2E38 3E 29       	LD a,029h				; ")"
+2414   2E3A 77          	ld (hl),a
+2415   2E3B 23          	inc hl
+2416   2E3C 22 17 29    	ld (DISEND),hl
+2417   2E3F C9          	ret
+2418   2E40             
+2419   2E40             L0x3502:
+2420   2E40 FE DB       	CP	0DBh
+2421   2E42 20 47       	JR	NZ,L0x354B
+2422   2E44 3E F0       	LD	A,0F0h
+2423   2E46 CD 24 2E    	CALL	L0x34F7
+2424   2E49 0E 00       	LD	C,00h
+2425   2E4B             ;	PUSH	BC
+2426   2E4B             ;	JP	L0x3439
+2427   2E4B CD AC 29    	call L0x3086
+2428   2E4E C3 28 2E    	jp L0x34FB
+2429   2E51             
+2430   2E51             
+2431   2E51             L0x3511:
+2432   2E51 06 01       	LD	B,01h
+2433   2E53             L0x3513:
+2434   2E53 F5          	PUSH	AF
+2435   2E54 CD 27 2B    	CALL	L0x31FF
+2436   2E57 F1          	POP	AF
+2437   2E58 B7          	OR	A
+2438   2E59 C2 79 2A    	JP	NZ,L0x3153
+2439   2E5C C9          	RET
+2440   2E5D             onebyt:
+2441   2E5D 06 13       	LD	B,13h				; 13h bytes of opcodes to test
+2442   2E5F 21 C8 2F    	LD	HL,TBL_OBT
+2443   2E62             L0x3522:
+2444   2E62 BE          	CP	(HL)				; check for a match in one byte table
+2445   2E63 28 0A       	JR	Z,L0x352F
+2446   2E65             L0x3525:
+2447   2E65 23          	INC	HL
+2448   2E66 CB 7E       	BIT	7,(HL)
+2449   2E68 28 FB       	JR	Z,L0x3525
+2450   2E6A 23          	INC	HL
+2451   2E6B 10 F5       	DJNZ	L0x3522
+2452   2E6D 37          	SCF
+2453   2E6E C9          	RET
+2454   2E6F             L0x352F:
+2455   2E6F E5          	PUSH	HL				; got a match to one byte opcode
+2456   2E70 42          	LD	B,D				; d = how many opcodes to display
+2457   2E71 CD 27 2B    	CALL	L0x31FF				; call display opcode routine
+2458   2E74 E1          	POP	HL
+2459   2E75 ED 5B 17 29 	LD	DE,(DISEND)
+2460   2E79             L0x3539:
+2461   2E79 23          	INC	HL				; this loop copies the opcode text
+2462   2E7A 7E          	LD	A,(HL)				; to buffer line 2
+2463   2E7B 12          	LD	(DE),A
+2464   2E7C 13          	INC	DE
+2465   2E7D CB 7F       	BIT	7,A
+2466   2E7F 28 F8       	JR	Z,L0x3539
+2467   2E81 EB          	EX	DE,HL
+2468   2E82 2B          	DEC	HL
+2469   2E83 CB BE       	RES	7,(HL)
+2470   2E85 23          	INC	HL
+2471   2E86 22 17 29    	LD	(DISEND),HL
+2472   2E89 B7          	OR	A
+2473   2E8A C9          	RET
+2474   2E8B             
+2475   2E8B             L0x354B:
+2476   2E8B 2A 17 29    	LD	HL,(DISEND)
+2477   2E8E FE DD       	CP	0DDh
+2478   2E90 20 07       	JR	NZ,L0x3559
+2479   2E92 36 44       	LD	(HL),044h
+2480   2E94 23          	INC	HL
+2481   2E95 3E 11       	LD	A,011h
+2482   2E97 18 09       	JR	L0x3562
+2483   2E99             L0x3559:
+2484   2E99 FE FD       	CP	0FDh
+2485   2E9B 20 33       	JR	NZ,L0x3590
+2486   2E9D 36 46       	LD	(HL),046h
+2487   2E9F 23          	INC	HL
+2488   2EA0 3E 22       	LD	A,022h
+2489   2EA2             L0x3562:
+2490   2EA2 32 19 29    	LD	(DISFLAG),A
+2491   2EA5 36 44       	LD	(HL),044h
+2492   2EA7 23          	INC	HL
+2493   2EA8 23          	INC	HL
+2494   2EA9 22 17 29    	LD	(DISEND),HL
+2495   2EAC 2A 1A 29    	LD	HL,(PERFROM)
+2496   2EAF 23          	INC	HL
+2497   2EB0 4E          	LD	C,(HL)
+2498   2EB1 7E          	LD	A,(HL)
+2499   2EB2 22 1A 29    	LD	(PERFROM),HL
+2500   2EB5 FE 36       	CP	036h
+2501   2EB7 E5          	PUSH	HL
+2502   2EB8 CC 25 2B    	CALL Z,L0x31FD
+2503   2EBB 79          	LD	A,C
+2504   2EBC E6 FE       	AND	0FEh
+2505   2EBE FE 34       	CP	034h
+2506   2EC0 06 02       	LD	B,02h
+2507   2EC2 CC 27 2B    	CALL Z,L0x31FF
+2508   2EC5 E1          	POP	HL
+2509   2EC6 7E          	LD	A,(HL)
+2510   2EC7 FE E9       	CP	0E9h
+2511   2EC9 28 02       	JR	Z,L0x358D
+2512   2ECB FE E3       	CP	0E3h
+2513   2ECD             L0x358D:
+2514   2ECD 28 73       	JR	Z,L0x360A
+2515   2ECF 79          	LD	A,C
+2516   2ED0             L0x3590:
+2517   2ED0 C3 11 2B    	JP	L0x31E9
+2518   2ED3             L0x3593:
+2519   2ED3 2A 1A 29    	LD	HL,(PERFROM)
+2520   2ED6 2B          	DEC	HL
+2521   2ED7 2B          	DEC	HL
+2522   2ED8 22 1A 29    	LD	(PERFROM),HL
+2523   2EDB CD 2C 2A    	CALL	L0x3106
+2524   2EDE             
+2525   2EDE             L0x35A6:
+2526   2EDE 1F          	RRA
+2527   2EDF 1F          	RRA
+2528   2EE0 1F          	RRA
+2529   2EE1 FE 04       	CP	04h
+2530   2EE3 C0          	RET	NZ
+2531   2EE4 3A 19 29    	LD	A,(DISFLAG)
+2532   2EE7 0F          	RRCA
+2533   2EE8 30 03       	JR	NC,L0x35B5
+2534   2EEA 3E F3       	LD	A,0F3h
+2535   2EEC C9          	RET
+2536   2EED             L0x35B5:
+2537   2EED 0F          	RRCA
+2538   2EEE 30 03       	JR	NC,L0x35BB
+2539   2EF0 3E FA       	LD	A,0FAh
+2540   2EF2 C9          	RET
+2541   2EF3             L0x35BB:
+2542   2EF3 3E 04       	LD	A,004h
+2543   2EF5 C9          	RET
+2544   2EF6 01 08 00    	LD	BC,00008h
+2545   2EF9 CD 31 2A    	CALL	L0x310B
+2546   2EFC CD 05 2F    	CALL	L0x35CD
+2547   2EFF 01 0B 00    	LD	BC,0000Bh
+2548   2F02 C3 31 2A    	JP	L0x310B
+2549   2F05             L0x35CD:
+2550   2F05 3A 19 29    	LD	A,(DISFLAG)
+2551   2F08 06 00       	LD	B,000h
+2552   2F0A 0F          	RRCA
+2553   2F0B 30 04       	JR	NC,L0x35D9
+2554   2F0D 0E 0D       	LD	C,00Dh
+2555   2F0F 18 09       	JR	L0x35E2
+2556   2F11             L0x35D9:
+2557   2F11 0F          	RRCA
+2558   2F12 30 04       	JR	NC,L0x35E0
+2559   2F14 0E 14       	LD	C,014h
+2560   2F16 18 02       	JR	L0x35E2
+2561   2F18             L0x35E0:
+2562   2F18 0E 04       	LD	C,004h
+2563   2F1A             L0x35E2:
+2564   2F1A 3E 02       	LD	A,002h
+2565   2F1C C3 33 2A    	JP	L0x310D
+2566   2F1F             L0x35E7:
+2567   2F1F 3A 19 29    	LD	A,(DISFLAG)
+2568   2F22 0F          	RRCA
+2569   2F23             L0x35EB:
+2570   2F23 38 AE       	JR	C,L0x3593
+2571   2F25 0F          	RRCA
+2572   2F26 38 FB       	JR	C,L0x35EB
+2573   2F28 C3 2C 2A    	JP	L0x3106
+2574   2F2B             L0x35F3:
+2575   2F2B 2A 1A 29    	LD	HL,(PERFROM)
+2576   2F2E 5E          	LD	E,(HL)
+2577   2F2F AF          	XOR	A
+2578   2F30 CB 7B       	BIT	7,E
+2579   2F32 28 01       	JR	Z,L0x35FD
+2580   2F34 2F          	CPL
+2581   2F35             L0x35FD:
+2582   2F35 57          	LD	D,A
+2583   2F36 23          	INC	HL
+2584   2F37 19          	ADD	HL,DE
+2585   2F38 C3 B2 2A    	JP	hltoascii
+2586   2F3B             L0x3603:
+2587   2F3B E1          	POP	HL
+2588   2F3C F1          	POP	AF
+2589   2F3D E5          	PUSH	HL
+2590   2F3E F5          	PUSH	AF
+2591   2F3F C3 93 2B    	JP	L0x326B
+2592   2F42             L0x360A:
+2593   2F42 79          	LD	A,C
+2594   2F43 CD 5D 2E    	CALL	onebyt
+2595   2F46             L0x360E:
+2596   2F46 2B          	DEC	HL
+2597   2F47 7E          	LD	A,(HL)
+2598   2F48 FE 48       	CP	048h
+2599   2F4A 20 FA       	JR	NZ,L0x360E
+2600   2F4C 36 49       	LD	(HL),049h
+2601   2F4E 23          	INC	HL
+2602   2F4F 36 58       	LD	(HL),058h
+2603   2F51 3A 19 29    	LD	A,(DISFLAG)
+2604   2F54 0F          	RRCA
+2605   2F55 D8          	RET	C
+2606   2F56 34          	INC	(HL)
+2607   2F57 C9          	RET
+2608   2F58             
+2609   2F58             
+2610   2F58             ;START OF Loopup tables
+2611   2F58             
+2612   2F58             TBL_OPS:
+2613   2F58 49          	.DB	 049h 			;I 82 < WHERE "82H" IS THE INDEX HERE
+2614   2F59 4C C4 00    	.DB	 04Ch,0C4h,000h 	;LD 83
+2615   2F5C 41 44 C4    	.DB	 041h,044h,0C4h 	;ADD 86
+2616   2F5F 41 44 C3    	.DB	 041h,044h,0C3h 	;ADC 89
+2617   2F62 53 55 C2    	.DB	 053h,055h,0C2h 	;SUB 8C
+2618   2F65 53 42 C3    	.DB	 053h,042h,0C3h 	;SBC 8F
+2619   2F68 41 4E C4    	.DB	 041h,04Eh,0C4h 	;AND 92
+2620   2F6B 58 4F D2    	.DB	 058h,04Fh,0D2h 	;XOR 95
+2621   2F6E 4F D2 00    	.DB	 04Fh,0D2h,000h 	;OR 98
+2622   2F71 43 D0 00    	.DB	 043h,0D0h,000h 	;CP 9B
+2623   2F74 52 4C C3    	.DB	 052h,04Ch,0C3h 	;RLC 9E
+2624   2F77 52 52 C3    	.DB	 052h,052h,0C3h 	;RRC A1
+2625   2F7A 52 CC 00    	.DB	 052h,0CCh,000h 	;RL A4
+2626   2F7D 52 D2 00    	.DB	 052h,0D2h,000h 	;RR A7
+2627   2F80 53 4C C1    	.DB	 053h,04Ch,0C1h 	;SLA AA
+2628   2F83 53 52 C1    	.DB	 053h,052h,0C1h 	;SRA AD
+2629   2F86 53 52 CC    	.DB	 053h,052h,0CCh 	;SRL B0
+2630   2F89 42 49 D4    	.DB	 042h,049h,0D4h 	;BIT B3
+2631   2F8C 52 45 D3    	.DB	 052h,045h,0D3h 	;RES B6
+2632   2F8F 53 45 D4    	.DB	 053h,045h,0D4h 	;SET B9
+2633   2F92 49 4E C3    	.DB	 049h,04Eh,0C3h 	;INC BC
+2634   2F95 44 45 C3    	.DB	 044h,045h,0C3h 	;DEC BF
+2635   2F98 52 53 D4    	.DB	 052h,053h,0D4h 	;RST C2
+2636   2F9B 52 45 D4    	.DB	 052h,045h,0D4h 	;RET C5
+2637   2F9E 43 41 4C CC 	.DB	 043h,041h,04Ch,0CCh 	;CALL C8
+2638   2FA2 4A D0       	.DB	 04Ah,0D0h 		;JP CC
+2639   2FA4 50 4F D0    	.DB	 050h,04Fh,0D0h		;POP CE
+2640   2FA7 50 55 53 C8 	.DB	 050h,055h,053h,0C8h	;PUSH D1
+2641   2FAB 4A D2       	.DB	 04Ah,0D2h 		;JR D5
+2642   2FAD 45 D8       	.DB	 045h,0D8h 		;EX D7
+2643   2FAF 44 4A 4E DA 	.DB	 044h,04Ah,04Eh,0DAh	;DJNZ D9
+2644   2FB3             
+2645   2FB3             TBL_FLG:
+2646   2FB3 4E DA       	.DB	 04Eh,0DAh 		;NZ DD
+2647   2FB5 DA 20       	.DB	 0DAh,020h 		;Z_ DF
+2648   2FB7 4E C3       	.DB	 04Eh,0C3h 		;NC E1
+2649   2FB9 C3 00       	.DB	 0C3h,000h 		;C_E3
+2650   2FBB 50 CF       	.DB	 050h,0CFh 		;PO E5
+2651   2FBD 50 C5       	.DB	 050h,0C5h 		;PE E7
+2652   2FBF D0 00       	.DB	 0D0h,000h 		;P_ E9
+2653   2FC1 CD 00       	.DB	 0CDh,000h 		;M_ EB
+2654   2FC3 4F 55 D4    	.DB	 04Fh,055h,0D4h 	;OUT ED
+2655   2FC6 49 CE       	.DB	 049h,0CEh 		;IN F0
+2656   2FC8             
+2657   2FC8             TBL_OBT:
+2658   2FC8 00 4E 4F D0 	.DB	 000h,04Eh,04Fh,0D0h 	;NOP
+2659   2FCC 07 52 4C 43 	.DB	 007h,052h,04Ch,043h,0C1h ;RLCA
+2659   2FD0 C1 
+2660   2FD1 08 45 58 20 	.DB	 008h,045h,058h,020h,041h,046h,02Ch,041h,046h,0A7h ;EX AF,AF'
+2660   2FD5 41 46 2C 41 
+2660   2FD9 46 A7 
+2661   2FDB 0F 52 52 43 	.DB	 00Fh,052h,052h,043h,0C1h ;RRCA
+2661   2FDF C1 
+2662   2FE0 17 52 4C C1 	.DB	 017h,052h,04Ch,0C1h 	;RLA
+2663   2FE4 1F 52 52 C1 	.DB	 01Fh,052h,052h,0C1h 	;RRA
+2664   2FE8 27 44 41 C1 	.DB	 027h,044h,041h,0C1h 	;DAA
+2665   2FEC 2F 43 50 CC 	.DB	 02Fh,043h,050h,0CCh 	;CPL
+2666   2FF0 37 53 43 C6 	.DB	 037h,053h,043h,0C6h 	;SCF
+2667   2FF4 3F 43 43 C6 	.DB	 03Fh,043h,043h,0C6h 	;CCF
+2668   2FF8 76 48 41 4C 	.DB	 076h,048h,041h,04Ch,0D4h ;HALT
+2668   2FFC D4 
+2669   2FFD C9 52 45 D4 	.DB	 0C9h,052h,045h,0D4h 	;RET
+2670   3001 D9 45 58 D8 	.DB	 0D9h,045h,058h,0D8h 	;EXX
+2671   3005 E3 45 58 20 	.DB	 0E3h,045h,058h,020h,028h,053h,050h,029h,02Ch,048h,0CCh ;EX (SP),HL
+2671   3009 28 53 50 29 
+2671   300D 2C 48 CC 
+2672   3010 E9 4A 50 20 	.DB	 0E9h,04Ah,050h,020h,028h,048h,04Ch,0A9h ;JP (HL)
+2672   3014 28 48 4C A9 
+2673   3018 EB 45 58 20 	.DB	 0EBh,045h,058h,020h,044h,045h,02Ch,048h,0CCh ;EX DE,HL
+2673   301C 44 45 2C 48 
+2673   3020 CC 
+2674   3021 F3 44 C9    	.DB	 0F3h,044h,0C9h 	;DI
+2675   3024 F9 4C 44 20 	.DB	 0F9h,04Ch,044h,020h,053h,050h,02Ch,048h,0CCh ;LD SP,HL
+2675   3028 53 50 2C 48 
+2675   302C CC 
+2676   302D FB 45 C9    	.DB	 0FBh,045h,0C9h 	;EI
+2677   3030             
+2678   3030             TBL_EXC:
+2679   3030 44 4E 45 C7 	.DB	 044h,04Eh,045h,0C7h ;NEG
+2680   3034 45 52 45 54 	.DB	 045h,052h,045h,054h,0CEh ;RETN
+2680   3038 CE 
+2681   3039 46 49 4D 20 	.DB	 046h,049h,04Dh,020h,0B0h ;IM 0
+2681   303D B0 
+2682   303E 47 4C 44 20 	.DB	 047h,04Ch,044h,020h,049h,02Ch,0C1h ;LD I,A
+2682   3042 49 2C C1 
+2683   3045 4D 52 45 54 	.DB	 04Dh,052h,045h,054h,0C9h ;RETI
+2683   3049 C9 
+2684   304A 4F 4C 44 20 	.DB	 04Fh,04Ch,044h,020h,052h,02Ch,0C1h ;LD R,A
+2684   304E 52 2C C1 
+2685   3051 56 49 4D 20 	.DB	 056h,049h,04Dh,020h,0B1h ;IM 1
+2685   3055 B1 
+2686   3056 57 4C 44 20 	.DB	 057h,04Ch,044h,020h,041h,02Ch,0C9h ;LD A,I
+2686   305A 41 2C C9 
+2687   305D 5E 49 4D 20 	.DB	 05Eh,049h,04Dh,020h,0B2h ;IM 2
+2687   3061 B2 
+2688   3062 5F 4C 44 20 	.DB	 05Fh,04Ch,044h,020h,041h,02Ch,0D2h ;LD A,R
+2688   3066 41 2C D2 
+2689   3069 67 52 52 C4 	.DB	 067h,052h,052h,0C4h ;RRD
+2690   306D 6F 52 4C C4 	.DB	 06Fh,052h,04Ch,0C4h ;RLD
+2691   3071 A0 4C 44 C9 	.DB	 0A0h,04Ch,044h,0C9h ;LDI
+2692   3075 A1 43 50 C9 	.DB	 0A1h,043h,050h,0C9h ;CPI
+2693   3079 A2 49 4E C9 	.DB	 0A2h,049h,04Eh,0C9h ;INI
+2694   307D A3 4F 55 54 	.DB	 0A3h,04Fh,055h,054h,0C9h ;OUTI
+2694   3081 C9 
+2695   3082 A8 4C 44 C4 	.DB	 0A8h,04Ch,044h,0C4h ;LDD
+2696   3086 A9 43 50 C4 	.DB	 0A9h,043h,050h,0C4h ;CPD
+2697   308A AA 49 4E C4 	.DB	 0AAh,049h,04Eh,0C4h ;IND
+2698   308E AB 4F 55 54 	.DB	 0ABh,04Fh,055h,054h,0C4h ;OUTD
+2698   3092 C4 
+2699   3093 B0 4C 44 49 	.DB	 0B0h,04Ch,044h,049h,0D2h ;LDIR
+2699   3097 D2 
+2700   3098 B1 43 50 49 	.DB	 0B1h,043h,050h,049h,0D2h ;CPIR
+2700   309C D2 
+2701   309D B2 49 4E 49 	.DB	 0B2h,049h,04Eh,049h,0D2h ;INIR
+2701   30A1 D2 
+2702   30A2 B3 4F 54 49 	.DB	 0B3h,04Fh,054h,049h,0D2h ;OTIR
+2702   30A6 D2 
+2703   30A7 B8 4C 44 44 	.DB	 0B8h,04Ch,044h,044h,0D2h ;LDDR
+2703   30AB D2 
+2704   30AC B9 43 50 44 	.DB	 0B9h,043h,050h,044h,0D2h ;CPDR
+2704   30B0 D2 
+2705   30B1 BA 49 4E 44 	.DB	 0BAh,049h,04Eh,044h,0D2h ;INDR
+2705   30B5 D2 
+2706   30B6 BB 4F 54 44 	.DB	 0BBh,04Fh,054h,044h,0D2h ;OTDR
+2706   30BA D2 
+2707   30BB             
+2708   30BB             TBL_REG:
+2709   30BB 42 43       	.DB	 042h,043h 		;BC
+2710   30BD 44 45       	.DB	 044h,045h 		;DE
+2711   30BF 48 4C       	.DB	 048h,04Ch 		;HL
+2712   30C1 2C 41       	.DB	 02Ch,041h 		;,A
+2713   30C3 28 48 4C 29 	.DB	 028h,048h,04Ch,029h 	;(HL)
+2714   30C7 28 49 58 2B 	.DB	 028h,049h,058h,02Bh,020h,01Fh,029h ;(IX+__)
+2714   30CB 20 1F 29 
+2715   30CE 28 49 59 2B 	.DB	 028h,049h,059h,02Bh,020h,01Fh,029h ;(IY+__)
+2715   30D2 20 1F 29 
+2716   30D5             
+2717   30D5             TBL_SREG:
+2718   30D5 42          	.DB	 042h 			;B
+2719   30D6 43          	.DB	 043h 			;C
+2720   30D7 44          	.DB	 044h 			;D
+2721   30D8 45          	.DB	 045h 			;E
+2722   30D9 48          	.DB	 048h 			;H
+2723   30DA 4C          	.DB	 04Ch 			;L
+2724   30DB 53          	.DB	 053h 			;S
+2725   30DC 50          	.DB	 050h 			;P
+2726   30DD 28 43 29    	.DB	 028h,043h,029h 	;(C)
+2727   30E0             
+2728   30E0             ; end of Jim's disassembler
+2729   30E0             
+2730   30E0             
+2731   30E0             	.end
+2732   30E0             
+2733   30E0             
+2734   30E0             
+tasm: Number of errors = 0
