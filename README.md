@@ -107,7 +107,7 @@ TMON's CURRENT ADDRESS or CADDR is used by the commands in this section, however
 
 DUMP and DIS pause at completion - space repeats the command (CADDR continues to increment if auto-increment is on; otherwise same block repeats). Q quits and returns to the command prompt. This allows you to quickly run through larger blocks without needing to type commands repeatedly.
 
-**DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode. See full description of DATA mode, above.
+**DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode. Enter DIS to disassemble the instruction at the present location. See full description of DATA mode, above.
 
 **FILL xxxx yyyy nn** - Fill memory between address xxxx and yyyy with data nn. note: Fill range must be at least 2 bytes long. Does not do any checks for safely - use with caution, as you can overwite any area of memory including TMON itself.
 
