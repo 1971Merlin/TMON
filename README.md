@@ -109,7 +109,7 @@ DUMP and DIS pause at completion - space repeats the command (CADDR continues to
 
 **DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode. See full description of DATA mode, above.
 
-**FILL xxxx yyyy nn** - Fill memory between adress xxxx and yyyy with data nn. note: Fill range must be at least 2 bytes long. Does not do any checks for safely - use with caution, as you can overwite any area of memory including TMON itself.
+**FILL xxxx yyyy nn** - Fill memory between address xxxx and yyyy with data nn. note: Fill range must be at least 2 bytes long. Does not do any checks for safely - use with caution, as you can overwite any area of memory including TMON itself.
 
 ### Test & Informational commands
 
