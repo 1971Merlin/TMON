@@ -85,6 +85,19 @@ The DATA entry system is very simple and will continue to be improved in future 
 
 **CLS** - Clears the terminal screen
 
+**PRINT** - Echo's whatever you input, back to the console
+
+
+### TMON control commands
+
+**DEVICE** - Selects the input and output device(s) that tMON uses. Valid command options are as follows:
+
+- BITBANG - use the built-in BitBang serial port at 4800,n,8,2
+- 6850 - use Craig Jones's 6850 ACIA serial chip (at ports 080h and 081h) at 115200,n,8,1 (based on 7.3728MHz crystal)
+- MATRIX - use Mark Jelic's Matrix Keyboard for user input (Selected output device unchanged).
+
+BITBANG is the default TMON device.
+
 ### File Transfer commands
 
 **INTEL** - Transfer an Intel HEX file from PC to SC/TEC
@@ -109,7 +122,7 @@ DUMP and DIS pause at completion - space repeats the command (CADDR continues to
 
 **DATA xxxx** - Interactively Input data into memory. Input one hex byte at a time; the value input is stored to the CADDR memory location. Enter Q to quit input mode. Enter DIS to disassemble the instruction at the present location. See full description of DATA mode, above.
 
-**FILL xxxx yyyy nn** - Fill memory between address xxxx and yyyy with data nn. note: Fill range must be at least 2 bytes long. Does not do any checks for safely - use with caution, as you can overwite any area of memory including TMON itself.
+**FILL xxxx yyyy nn** - Fill memory between address xxxx and yyyy with data nn. note: Fill range must be at least 2 bytes long. Does not do any checks for safely - use with caution, as you can overwite any area of memory including TMON itself, the stack, probagram code or data.
 
 ### Test & Informational commands
 
@@ -148,6 +161,6 @@ TMON assembles using Telemark TASM asembler. The syntax is fairly generic Z80 an
 
 Note that you will also require the SCMON INCLUDE file scm18_include.asm from SCMON - available from the SCMON link at the top of this document.
 
-TMON may be compiled to run from anywhere in memory space by altering the .ORG statement at the top of the code. There are no hard coded addresses. The SCMON includes file also takes care of all the hardware-specific differences beteween the TEC-1F and the SC-1..oyu do not need to reassemble the code to switch from one machine to the other. Just ensure the machine is running the version of SCMON designed for that hardware.
+TMON may be compiled to run from anywhere in memory space by altering the .ORG statement at the top of the code. There are no hard coded addresses. The SCMON includes file also takes care of all the hardware-specific differences beteween the TEC-1F and the SC-1..you do not need to reassemble the code to switch from one machine to the other. Just ensure the machine is running the version of SCMON designed for that hardware.
 
 As TMON is open source and licenced under GPLv3, feel free to fix bugs, add features and whatnot using the normal GitHub tools and in accordance with GPL principals.
